@@ -25,3 +25,7 @@
 
 .vs
 out
+
+*.pdb
+
+cpplox/x64

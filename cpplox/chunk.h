@@ -1,6 +1,6 @@
 ﻿#pragma once
 
-#include "common.h"
+#include <cstdint>
 
 namespace cpplox
 {
@@ -12,15 +12,6 @@ enum OpCode
 
 struct Chunk
 {
-	// 要素数
-	int count = 0;
-
-	// 容量
-	size_t capacity = 0;
-
-	// バイトコードの配列
-	uint8_t* code = nullptr;
-
 	Chunk()
 	{
 		Init();
@@ -29,6 +20,10 @@ struct Chunk
 	void Init();
 	void Free();
 	void Write(uint8_t byte);
+
+	int count = 0;
+	size_t capacity = 0;
+	uint8_t* code = nullptr;
 };
 
 } // namespace cpplox

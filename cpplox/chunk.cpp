@@ -11,6 +11,12 @@ void Chunk::Init()
 	code = nullptr;
 }
 
+void Chunk::Free()
+{
+	free_array(code, capacity);
+	Init();
+}
+
 void Chunk::Write(uint8_t byte)
 {
 	if (capacity < count + 1)

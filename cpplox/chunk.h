@@ -21,7 +21,13 @@ struct Chunk
 	// バイトコードの配列
 	uint8_t* code = nullptr;
 
+	Chunk()
+	{
+		Init();
+	}
+
 	void Init();
+	void Free();
 	void Write(uint8_t byte);
 };
 

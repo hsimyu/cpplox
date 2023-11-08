@@ -19,4 +19,10 @@ T* grow_array(T* ptr, size_t oldCount, size_t newCount)
 	return static_cast<T*>(newPtr);
 }
 
+template<typename T>
+void free_array(T* ptr, size_t oldCount)
+{
+	reallocate(ptr, sizeof(T) * oldCount, 0);
+}
+
 }

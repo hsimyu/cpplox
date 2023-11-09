@@ -1,9 +1,6 @@
 #include "chunk.h"
 #include "memory.h"
 
-namespace cpplox
-{
-
 void Chunk::Init()
 {
 	count = 0;
@@ -30,4 +27,3 @@ void Chunk::Write(uint8_t byte)
 	count++;
 }
 
-} // namespace cpplox

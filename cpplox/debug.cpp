@@ -3,9 +3,6 @@
 #include <cstdio>
 #include "chunk.h"
 
-namespace cpplox
-{
-
 namespace
 {
 	int simpleInstruction(const char* name, int offset)
@@ -38,6 +35,4 @@ int disassembleInstruction(const Chunk* chunk, int offset)
 		printf("Unknown opcode %d\n", instruction);
 		return offset + 1;
 	}
-}
-
 }

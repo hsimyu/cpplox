@@ -2,10 +2,10 @@
 
 int main(int argc, const char* argv[])
 {
-	cpplox::Chunk c;
-	c.Write(cpplox::OP_RETURN);
+	Chunk c;
+	c.Write(OP_RETURN);
 
-	cpplox::disassembleChunk(&c, "test chunk");
+	disassembleChunk(&c, "test chunk");
 
 	c.Free();
 

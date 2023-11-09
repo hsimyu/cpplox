@@ -1,8 +1,5 @@
 #pragma once
 
-namespace cpplox
-{
-
 inline size_t grow_capacity(size_t capacity)
 {
 	return (capacity < 8) ? 8 : capacity * 2;
@@ -25,4 +22,3 @@ void free_array(T* ptr, size_t oldCount)
 	reallocate(ptr, sizeof(T) * oldCount, 0);
 }
 
-}

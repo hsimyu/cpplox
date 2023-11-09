@@ -2,9 +2,6 @@
 
 #include <cstdint>
 
-namespace cpplox
-{
-
 enum OpCode
 {
 	OP_RETURN
@@ -26,4 +23,3 @@ struct Chunk
 	uint8_t* code = nullptr;
 };
 
-} // namespace cpplox

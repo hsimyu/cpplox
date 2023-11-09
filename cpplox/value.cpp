@@ -1,5 +1,12 @@
-#include "value.h"
+﻿#include "value.h"
 #include "memory.h"
+
+#include <cstdio>
+
+void printValue(Value val)
+{
+	printf("%g", val);
+}
 
 void ValueArray::Init()
 {
@@ -26,4 +33,3 @@ void ValueArray::Write(Value val)
 	values[count] = val;
 	count++;
 }
-

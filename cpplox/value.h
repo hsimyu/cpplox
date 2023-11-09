@@ -1,6 +1,8 @@
-#pragma once
+﻿#pragma once
 
 using Value = double;
+
+void printValue(Value val);
 
 struct ValueArray
 {

@@ -1,12 +1,10 @@
-#pragma once
+ï»¿#pragma once
 
 inline size_t grow_capacity(size_t capacity)
 {
 	return (capacity < 8) ? 8 : capacity * 2;
 }
 
-// reallocate ‚µ‚Ü‚·B
-// ƒƒ‚ƒŠ•s‘«‚Ì‚Æ‚«Anullptr ‚ð•Ô‚µ‚Ü‚·B
 void* reallocate(void* ptr, size_t oldSize, size_t newSize);
 
 template<typename T>
@@ -21,4 +19,3 @@ void free_array(T* ptr, size_t oldCount)
 {
 	reallocate(ptr, sizeof(T) * oldCount, 0);
 }
-

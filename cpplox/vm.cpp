@@ -23,6 +23,14 @@ InterpretResult run()
 	for (;;)
 	{
 #if DEBUG_TRACE_EXECUTION
+		printf("        ");
+		for (Value* slot = vm.stack; slot < vm.stackTop; slot++)
+		{
+			printf("[ ");
+			printValue(*slot);
+			printf(" ]");
+		}
+		printf("\n");
 		disassembleInstruction(vm.chunk, static_cast<int>(vm.ip - vm.chunk->code));
 #endif
 

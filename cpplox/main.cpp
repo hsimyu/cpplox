@@ -2,6 +2,8 @@
 
 int main(int argc, const char* argv[])
 {
+	initVM();
+
 	Chunk c;
 
 	// 定数プールに値を格納し、そのインデックスを取得
@@ -16,5 +18,6 @@ int main(int argc, const char* argv[])
 
 	c.Free();
 
+	freeVM();
 	return 0;
 }

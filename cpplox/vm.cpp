@@ -23,7 +23,7 @@ InterpretResult run()
 	for (;;)
 	{
 #if DEBUG_TRACE_EXECUTION
-		printf("        ");
+		printf("          ");
 		for (Value* slot = vm.stack; slot < vm.stackTop; slot++)
 		{
 			printf("[ ");
@@ -41,12 +41,13 @@ InterpretResult run()
 
 		case OP_CONSTANT: {
 			Value constant = read_constant();
-			printValue(constant);
-			printf("\n");
+			push(constant);
 			break;
 		}
 
 		case OP_RETURN: {
+			printValue(pop());
+			printf("\n");
 			return INTERPRET_OK;
 		}
 

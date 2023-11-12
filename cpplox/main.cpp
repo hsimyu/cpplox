@@ -1,5 +1,7 @@
 ﻿#include "common.h"
 
+#include <cstdio>
+
 int main(int argc, const char* argv[])
 {
 	initVM();
@@ -15,6 +17,9 @@ int main(int argc, const char* argv[])
 	c.Write(OP_RETURN, 123);
 
 	disassembleChunk(&c, "test chunk");
+	printf("== main ==\n");
+
+	interpret(&c);
 
 	c.Free();
 

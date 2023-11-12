@@ -45,6 +45,12 @@ InterpretResult run()
 			break;
 		}
 
+		case OP_NEGATE: {
+			// push し直すより直接書き換えた方が速そう…?
+			push(-pop());
+			break;
+		}
+
 		case OP_RETURN: {
 			printValue(pop());
 			printf("\n");

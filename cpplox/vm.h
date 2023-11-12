@@ -9,20 +9,20 @@ struct VM
 {
 	Chunk* chunk = nullptr;
 	uint8_t* ip = nullptr;
-	Value stack[STACK_COUNT_MAX];
+	Value stack[STACK_COUNT_MAX] = { 0 };
 	Value* stackTop = nullptr;
 };
 
 enum class InterpretResult
 {
-	INTERPRET_OK,
-	INTERPRET_COMPILE_ERROR,
-	INTERPRET_RUNTIME_ERROR,
+	Ok,
+	CompileError,
+	RuntimeError,
 };
 
 void initVM();
 void freeVM();
 
-InterpretResult interpret(Chunk* chunk);
+InterpretResult interpret(const char* source);
 void push(Value value);
 Value pop();

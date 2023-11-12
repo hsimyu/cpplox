@@ -66,11 +66,11 @@ InterpretResult run()
 		case OP_RETURN: {
 			printValue(pop());
 			printf("\n");
-			return INTERPRET_OK;
+			return Ok;
 		}
 
 		default:
-			return INTERPRET_RUNTIME_ERROR;
+			return RuntimeError;
 
 		}
 	}
@@ -99,6 +99,12 @@ InterpretResult interpret(Chunk* chunk)
 	vm.chunk = chunk;
 	vm.ip = vm.chunk->code;
 	return run();
+}
+
+InterpretResult interpret(const char* source)
+{
+	// compile(source);
+	return InterpretResult::Ok;
 }
 
 void push(Value value)

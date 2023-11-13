@@ -1,6 +1,8 @@
 ﻿#include "vm.h"
 
 #include "common.h"
+#include "compiler.h"
+
 #include <cstdio>
 
 VM vm; // global vm instance
@@ -103,7 +105,7 @@ InterpretResult interpret(Chunk* chunk)
 
 InterpretResult interpret(const char* source)
 {
-	// compile(source);
+	compile(source);
 	return InterpretResult::Ok;
 }
 

@@ -99,6 +99,22 @@ void skipWhiteSpace()
 	}
 }
 
+Token string()
+{
+	// 次の二重引用符まで進める
+	while (peek() != '"' && !isAtEnd()) {
+		if (peek() == '\n') scanner.line++;
+
+		advance();
+	}
+
+	if (isAtEnd()) return errorToken("Unterminated string.");
+
+	// 閉じ引用符を消費
+	advance();
+	return makeToken(TOKEN_STRING);
+}
+
 }
 
 void initScanner(const char* source)
@@ -137,6 +153,8 @@ Token scanToken()
 			return makeToken(match('=') ? TOKEN_LESS_EQUAL : TOKEN_LESS);
 		case '>':
 			return makeToken(match('=') ? TOKEN_GREATER_EQUAL : TOKEN_GREATER);
+		case '"':
+			return string();
 	}
 
 	return errorToken("Unexpected character");

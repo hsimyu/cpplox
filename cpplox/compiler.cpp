@@ -13,12 +13,16 @@ struct Parser
 	Token current;
 	Token previous;
 	bool hadError = false;
+	bool panicMode = false;
 };
 
 Parser parser;
 
 void errorAt(Token* token, const char* message)
 {
+	if (parser.panicMode) return;
+
+	parser.panicMode = true;
 	fprintf(stderr, "[line %d] Error", token->line);
 
 	if (token->type == TOKEN_EOF)
@@ -59,13 +63,27 @@ void advance()
 	}
 }
 
+void consume(TokenType type, const char* message)
+{
+	if (parser.current.type == type)
+	{
+		advance();
+		return;
+	}
+
+	errorAtCurrent(message);
+}
+
 }
 
 bool compile(const char* source, Chunk* chunk)
 {
 	initScanner(source);
-	//advance();
+
+	advance();
+
 	//expression();
-	//consume(TOKEN_EOF, "Expect end of expression.");
+
+	consume(TOKEN_EOF, "Expect end of expression.");
 	return !parser.hadError;
 }

@@ -18,15 +18,20 @@ bool isAtEnd()
 	return *scanner.current == '\0';
 }
 
+char advance()
+{
+	scanner.current++;
+	return scanner.current[-1]; // current の一つ前を返す
+}
+
 char peek()
 {
 	return *scanner.current;
 }
 
-char advance()
-{
-	scanner.current++;
-	return scanner.current[-1]; // current の一つ前を返す
+char peekNext() {
+	if (isAtEnd()) return '\0';
+	return scanner.current[1];
 }
 
 bool match(char expected)
@@ -73,6 +78,21 @@ void skipWhiteSpace()
 			scanner.line++;
 			advance();
 			break;
+		case '/':
+			if (peekNext() == '/')
+			{
+				// 行コメントは行末まで無視
+				while (peek() != '\n' && !isAtEnd())
+				{
+					advance();
+				}
+				break;
+			}
+			else
+			{
+				// 最初の / も有効な字句なので抜ける
+				return;
+			}
 		default:
 		   return;
 		}

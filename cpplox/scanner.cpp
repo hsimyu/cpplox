@@ -18,6 +18,11 @@ bool isAtEnd()
 	return *scanner.current == '\0';
 }
 
+char peek()
+{
+	return *scanner.current;
+}
+
 char advance()
 {
 	scanner.current++;
@@ -52,6 +57,28 @@ Token errorToken(const char* message)
 	};
 }
 
+void skipWhiteSpace()
+{
+	for (;;)
+	{
+		char c = peek();
+		switch (c)
+		{
+		case ' ':
+		case '\r':
+		case '\t':
+			advance();
+			break;
+		case '\n':
+			scanner.line++;
+			advance();
+			break;
+		default:
+		   return;
+		}
+	}
+}
+
 }
 
 void initScanner(const char* source)
@@ -63,6 +90,7 @@ void initScanner(const char* source)
 
 Token scanToken()
 {
+	skipWhiteSpace();
 	scanner.start = scanner.current;
 
 	if (isAtEnd()) return makeToken(TOKEN_EOF);

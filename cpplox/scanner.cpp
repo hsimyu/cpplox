@@ -99,6 +99,20 @@ void skipWhiteSpace()
 	}
 }
 
+Token number()
+{
+	while (isDigit(peek())) advance();
+
+	// 小数点数
+	if (peek() == '.' && isDigit(peekNext()))
+	{
+		advance(); // "." を消費
+		while (isDigit(peek())) advance();
+	}
+
+	return makeToken(TOKEN_NUMBER);
+}
+
 Token string()
 {
 	// 次の二重引用符まで進める
@@ -124,6 +138,11 @@ void initScanner(const char* source)
 	scanner.line = 1;
 }
 
+bool isDigit(char c)
+{
+	return c >= '0' && c <= '9';
+}
+
 Token scanToken()
 {
 	skipWhiteSpace();
@@ -132,6 +151,9 @@ Token scanToken()
 	if (isAtEnd()) return makeToken(TOKEN_EOF);
 
 	char c = advance();
+
+	if (isDigit(c)) return number();
+
 	switch (c)
 	{
 		case '(': return makeToken(TOKEN_LEFT_PAREN);

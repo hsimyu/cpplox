@@ -105,8 +105,20 @@ InterpretResult interpret(Chunk* chunk)
 
 InterpretResult interpret(const char* source)
 {
-	compile(source);
-	return InterpretResult::Ok;
+	Chunk chunk{};
+
+	if (!compile(source, &chunk))
+	{
+		chunk.Free();
+		return InterpretResult::CompileError;
+	}
+
+	vm.chunk = &chunk;
+	vm.ip = vm.chunk->code;
+
+	auto result = run();
+	chunk.Free();
+	return result;
 }
 
 void push(Value value)

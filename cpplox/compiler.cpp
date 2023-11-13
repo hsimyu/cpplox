@@ -17,6 +17,12 @@ struct Parser
 };
 
 Parser parser;
+Chunk* compilingChunk = nullptr;
+
+Chunk* currentChunk()
+{
+	return compilingChunk;
+}
 
 void errorAt(Token* token, const char* message)
 {
@@ -74,16 +80,43 @@ void consume(TokenType type, const char* message)
 	errorAtCurrent(message);
 }
 
+void emitByte(uint8_t byte)
+{
+	currentChunk()->Write(byte, parser.previous.line);
+}
+
+void emitBytes(uint8_t byte1, uint8_t byte2)
+{
+	emitByte(byte1);
+	emitByte(byte2);
+}
+
+void emitReturn()
+{
+	emitByte(OP_RETURN);
+}
+
+void endCompiler()
+{
+	emitReturn();
+}
+
+void expression()
+{
+}
+
 }
 
 bool compile(const char* source, Chunk* chunk)
 {
 	initScanner(source);
+	compilingChunk = chunk;
 
 	advance();
 
-	//expression();
+	expression();
 
 	consume(TOKEN_EOF, "Expect end of expression.");
+	endCompiler();
 	return !parser.hadError;
 }

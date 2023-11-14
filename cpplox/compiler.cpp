@@ -2,6 +2,11 @@
 
 #include "scanner.h"
 #include "chunk.h"
+#include "common.h"
+
+#if DEBUG_PRINT_CODE
+#include "debug.h"
+#endif
 
 #include <cstdio>
 #include <cstdlib>
@@ -142,6 +147,13 @@ void emitReturn()
 void endCompiler()
 {
 	emitReturn();
+
+#if DEBUG_PRINT_CODE
+	if (!parser.hadError)
+	{
+		disassembleChunk(currentChunk(), "code");
+	}
+#endif
 }
 
 void number();

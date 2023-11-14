@@ -3,6 +3,10 @@
 #include "common.h"
 #include "compiler.h"
 
+#if DEBUG_TRACE_EXECUTION
+#include "debug.h"
+#endif
+
 #include <cstdio>
 
 VM vm; // global vm instance

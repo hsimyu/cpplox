@@ -33,6 +33,15 @@ enum Precedence
 	PREC_PRIMARY,
 };
 
+using ParseFn = void (*)();
+
+struct ParseRule
+{
+	ParseFn prefix;
+	ParseFn infix;
+	Precedence precedence;
+};
+
 Parser parser;
 Chunk* compilingChunk = nullptr;
 
@@ -135,6 +144,92 @@ void endCompiler()
 	emitReturn();
 }
 
+void number();
+void unary();
+void binary();
+void grouping();
+
+ParseRule rules[] = {
+	// [前置パーサー、中置パーサー、中置パーサーの優先順位] の表
+	/* TOKEN_LEFT_PAREN    */ {grouping, nullptr, PREC_NONE},
+	/* TOKEN_RIGHT_PAREN   */ {nullptr, nullptr, PREC_NONE},
+	/* TOKEN_LEFT_BRACE    */ {nullptr, nullptr, PREC_NONE},
+	/* TOKEN_RIGHT_BRACE   */ {nullptr, nullptr, PREC_NONE},
+	/* TOKEN_COMMA         */ {nullptr, nullptr, PREC_NONE},
+	/* TOKEN_DOT           */ {nullptr, nullptr, PREC_NONE},
+	/* TOKEN_MINUS         */ {unary, binary, PREC_TERM},
+	/* TOKEN_PLUS          */ {nullptr, binary, PREC_TERM},
+	/* TOKEN_SEMICOLON     */ {nullptr, nullptr, PREC_NONE},
+	/* TOKEN_SLASH         */ {nullptr, binary, PREC_FACTOR},
+	/* TOKEN_STAR          */ {nullptr, binary, PREC_FACTOR},
+	/* TOKEN_BANG          */ {nullptr, nullptr, PREC_NONE},
+	/* TOKEN_BANG_EQUAL    */ {nullptr, nullptr, PREC_NONE},
+	/* TOKEN_EQUAL         */ {nullptr, nullptr, PREC_NONE},
+	/* TOKEN_EQUAL_EQUAL   */ {nullptr, nullptr, PREC_NONE},
+	/* TOKEN_GREATER       */ {nullptr, nullptr, PREC_NONE},
+	/* TOKEN_GREATER_EQUAL */ {nullptr, nullptr, PREC_NONE},
+	/* TOKEN_LESS          */ {nullptr, nullptr, PREC_NONE},
+	/* TOKEN_LESS_EQUAL    */ {nullptr, nullptr, PREC_NONE},
+	/* TOKEN_IDENTIFIER    */ {nullptr, nullptr, PREC_NONE},
+	/* TOKEN_STRING        */ {nullptr, nullptr, PREC_NONE},
+	/* TOKEN_NUMBER        */ {number, nullptr, PREC_NONE},
+	/* TOKEN_AND           */ {nullptr, nullptr, PREC_NONE},
+	/* TOKEN_CLASS         */ {nullptr, nullptr, PREC_NONE},
+	/* TOKEN_ELSE          */ {nullptr, nullptr, PREC_NONE},
+	/* TOKEN_FALSE         */ {nullptr, nullptr, PREC_NONE},
+	/* TOKEN_FOR           */ {nullptr, nullptr, PREC_NONE},
+	/* TOKEN_FUN           */ {nullptr, nullptr, PREC_NONE},
+	/* TOKEN_IF            */ {nullptr, nullptr, PREC_NONE},
+	/* TOKEN_NIL           */ {nullptr, nullptr, PREC_NONE},
+	/* TOKEN_OR            */ {nullptr, nullptr, PREC_NONE},
+	/* TOKEN_PRINT         */ {nullptr, nullptr, PREC_NONE},
+	/* TOKEN_RETURN        */ {nullptr, nullptr, PREC_NONE},
+	/* TOKEN_SUPER         */ {nullptr, nullptr, PREC_NONE},
+	/* TOKEN_THIS          */ {nullptr, nullptr, PREC_NONE},
+	/* TOKEN_TRUE          */ {nullptr, nullptr, PREC_NONE},
+	/* TOKEN_VAR           */ {nullptr, nullptr, PREC_NONE},
+	/* TOKEN_WHILE         */ {nullptr, nullptr, PREC_NONE},
+	/* TOKEN_ERROR         */ {nullptr, nullptr, PREC_NONE},
+	/* TOKEN_EOF           */ {nullptr, nullptr, PREC_NONE},
+};
+
+ParseRule* getRule(TokenType type)
+{
+	return &rules[type];
+}
+
+void parsePrecedence(Precedence precedence)
+{
+	// 指定された優先順位と同じか順位が低いものに遭遇するまで式をパースする
+	advance();
+	ParseFn prefixRule = getRule(parser.previous.type)->prefix;
+
+	if (prefixRule == nullptr)
+	{
+		error("Expect expression.");
+		return;
+	}
+
+	// 前置解析を行う
+	prefixRule();
+
+	// 現在指しているトークンの優先度が指定した優先度と同じか低い間はループし続ける
+	while (precedence <= getRule(parser.current.type)->precedence)
+	{
+		// prefixRule() の解析結果は中置演算子のオペランドだったとしてパースを進める
+		advance();
+		ParseFn infixRule = getRule(parser.previous.type)->infix;
+
+		if (infixRule == nullptr)
+		{
+			error("Expect expression.");
+			return;
+		}
+
+		infixRule();
+	}
+}
+
 void number()
 {
 	// TODO: std::from_chars のがよい?
@@ -159,9 +254,31 @@ void unary()
 	}
 }
 
-void parsePrecedence(Precedence precedence)
+void binary()
 {
-	// 指定された優先順位より低いものに遭遇するまで式をパースする
+	auto opType = parser.previous.type;
+	ParseRule* rule = getRule(opType);
+
+	// 現在の優先順位より一つだけ高いものまでパースする (左結合)
+	parsePrecedence(static_cast<Precedence>(rule->precedence + 1));
+
+	switch (opType)
+	{
+	case TOKEN_PLUS:
+		emitByte(OP_ADD);
+		break;
+	case TOKEN_MINUS:
+		emitByte(OP_SUBTRACT);
+		break;
+	case TOKEN_STAR:
+		emitByte(OP_MULTIPLY);
+		break;
+	case TOKEN_SLASH:
+		emitByte(OP_DIVIDE);
+		break;
+	default:
+		return; // Unreachable
+	}
 }
 
 void expression()

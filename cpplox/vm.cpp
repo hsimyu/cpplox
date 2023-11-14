@@ -90,6 +90,18 @@ InterpretResult run()
 			break;
 		}
 
+		case OP_NIL:
+			push(Value::toNil());
+			break;
+
+		case OP_TRUE:
+			push(Value::toBool(true));
+			break;
+
+		case OP_FALSE:
+			push(Value::toBool(false));
+			break;
+
 		case OP_ADD: BINARY_OP(Number, +); break;
 		case OP_SUBTRACT: BINARY_OP(Number, -); break;
 		case OP_MULTIPLY: BINARY_OP(Number, *); break;

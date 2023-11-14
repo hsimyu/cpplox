@@ -5,7 +5,19 @@
 
 void printValue(Value val)
 {
-	printf("%g", val.as.number);
+	switch (val.type)
+	{
+	using enum ValueType;
+	case Bool:
+		printf("%s", val.as.boolean ? "true" : "false");
+		break;
+	case Nil:
+		printf("nil");
+		break;
+	case Number:
+		printf("%g", val.as.number);
+		break;
+	}
 }
 
 void ValueArray::Init()

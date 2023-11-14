@@ -43,6 +43,13 @@ void runtimeError(const char* format, ...)
 	va_end(args);
 
 	fputs("\n", stderr);
+
+	// コードを読んだあとに ip++ されているので、エラーを起こしたのは現在実行しているコードの一つ前になる
+	size_t instruction = vm.ip - vm.chunk->code - 1;
+	int line = vm.chunk->lines[instruction];
+	fprintf(stderr, "[line %d] in script\n", line);
+
+	resetStack();
 }
 
 #define BINARY_OP(op) \

@@ -9,7 +9,7 @@ struct VM
 {
 	Chunk* chunk = nullptr;
 	uint8_t* ip = nullptr;
-	Value stack[STACK_COUNT_MAX] = { 0 };
+	Value stack[STACK_COUNT_MAX] = { };
 	Value* stackTop = nullptr;
 };
 

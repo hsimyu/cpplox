@@ -8,6 +8,7 @@
 #endif
 
 #include <cstdio>
+#include <cstdarg>
 
 VM vm; // global vm instance
 
@@ -22,6 +23,26 @@ uint8_t read_byte()
 Value read_constant()
 {
 	return (vm.chunk->constants.values[read_byte()]);
+}
+
+Value peek(int distance)
+{
+	return vm.stackTop[-1 - distance];
+}
+
+void resetStack()
+{
+	vm.stackTop = vm.stack;
+}
+
+void runtimeError(const char* format, ...)
+{
+	va_list args;
+	va_start(args, format);
+	vfprintf(stderr, format, args);
+	va_end(args);
+
+	fputs("\n", stderr);
 }
 
 #define BINARY_OP(op) \
@@ -64,8 +85,12 @@ InterpretResult run()
 		case OP_DIVIDE: BINARY_OP(/); break;
 
 		case OP_NEGATE: {
-			// push し直すより直接書き換えた方が速そう…?
-			push(-pop());
+			if (!peek(0).isNumber())
+			{
+				runtimeError("Operand must be a number.");
+				return RuntimeError;
+			}
+			push(Value::toNumber(-pop().as.number));
 			break;
 		}
 
@@ -83,12 +108,6 @@ InterpretResult run()
 }
 
 #undef BINARY_OP
-
-void resetStack()
-{
-	vm.stackTop = vm.stack;
-}
-
 }
 
 void initVM()
@@ -136,3 +155,4 @@ Value pop()
 	vm.stackTop--;
 	return *vm.stackTop;
 }
+

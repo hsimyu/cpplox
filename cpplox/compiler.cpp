@@ -246,7 +246,7 @@ void number()
 {
 	// TODO: std::from_chars のがよい?
 	double value = strtod(parser.previous.start, nullptr);
-	emitConstant(value);
+	emitConstant(Value::toNumber(value));
 }
 
 void unary()

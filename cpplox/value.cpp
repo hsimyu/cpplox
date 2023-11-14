@@ -5,7 +5,7 @@
 
 void printValue(Value val)
 {
-	printf("%g", val);
+	printf("%g", val.as.number);
 }
 
 void ValueArray::Init()

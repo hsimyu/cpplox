@@ -4,6 +4,7 @@
 #include "chunk.h"
 
 #include <cstdio>
+#include <cstdlib>
 
 namespace
 {
@@ -14,6 +15,22 @@ struct Parser
 	Token previous;
 	bool hadError = false;
 	bool panicMode = false;
+};
+
+// 優先順位 (値が小さいほど優先順位が低い)
+enum Precedence
+{
+	PREC_NONE = 0,
+	PREC_ASSIGNMENT, // =
+	PREC_OR, // or
+	PREC_AND, // and
+	PREC_EQUALITY, // == !=
+	PREC_COMPARISON, //  < > <= >=
+	PREC_TERM, // + -
+	PREC_FACTOR, // * /
+	PREC_UNARY, // ! -
+	PREC_CALL, // . ()
+	PREC_PRIMARY,
 };
 
 Parser parser;
@@ -91,6 +108,23 @@ void emitBytes(uint8_t byte1, uint8_t byte2)
 	emitByte(byte2);
 }
 
+uint8_t makeConstant(Value value)
+{
+	int constant = currentChunk()->AddConstant(value);
+	if (constant > UINT8_MAX)
+	{
+		error("Too many constants in one chunk.");
+		return 0;
+	}
+
+	return static_cast<uint8_t>(constant);
+}
+
+void emitConstant(Value value)
+{
+	emitBytes(OP_CONSTANT, makeConstant(value));
+}
+
 void emitReturn()
 {
 	emitByte(OP_RETURN);
@@ -101,8 +135,44 @@ void endCompiler()
 	emitReturn();
 }
 
+void number()
+{
+	// TODO: std::from_chars のがよい?
+	double value = strtod(parser.previous.start, nullptr);
+	emitConstant(value);
+}
+
+void unary()
+{
+	auto opType = parser.previous.type;
+
+	// オペランドをコンパイル
+	parsePrecedence(PREC_UNARY);
+
+	switch (opType)
+	{
+	case TOKEN_MINUS:
+		emitByte(OP_NEGATE);
+		break;
+	default:
+		return; // Unreachable
+	}
+}
+
+void parsePrecedence(Precedence precedence)
+{
+	// 指定された優先順位より低いものに遭遇するまで式をパースする
+}
+
 void expression()
 {
+	parsePrecedence(PREC_ASSIGNMENT);
+}
+
+void grouping()
+{
+	expression();
+	consume(TOKEN_RIGHT_PAREN, "Expect ')' after expression.");
 }
 
 }

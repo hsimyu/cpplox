@@ -271,7 +271,8 @@ void binary()
 	auto opType = parser.previous.type;
 	ParseRule* rule = getRule(opType);
 
-	// 現在の優先順位より一つだけ高いものまでパースする (左結合)
+	// 現在の優先順位より一つだけ高いものまでパースする
+	// つまり、自分と同じ優先度のものが来たらそれは拾わない => 左結合
 	parsePrecedence(static_cast<Precedence>(rule->precedence + 1));
 
 	switch (opType)

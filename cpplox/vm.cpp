@@ -52,11 +52,15 @@ void runtimeError(const char* format, ...)
 	resetStack();
 }
 
-#define BINARY_OP(op) \
+#define BINARY_OP(ValueType, op) \
 	do { \
-		double b = pop(); \
-		double a = pop(); \
-		push(a op b); \
+        if (!peek(0).isNumber() || !peek(1).isNumber()) { \
+            runtimeError("Operand must be numbers."); \
+            return InterpretResult::RuntimeError; \
+        } \
+		double b = pop().as.number; \
+		double a = pop().as.number; \
+		push(Value::to##ValueType(a op b)); \
 	} while (false)
 
 InterpretResult run()
@@ -86,10 +90,10 @@ InterpretResult run()
 			break;
 		}
 
-		case OP_ADD: BINARY_OP(+); break;
-		case OP_SUBTRACT: BINARY_OP(-); break;
-		case OP_MULTIPLY: BINARY_OP(*); break;
-		case OP_DIVIDE: BINARY_OP(/); break;
+		case OP_ADD: BINARY_OP(Number, +); break;
+		case OP_SUBTRACT: BINARY_OP(Number, -); break;
+		case OP_MULTIPLY: BINARY_OP(Number, *); break;
+		case OP_DIVIDE: BINARY_OP(Number, /); break;
 
 		case OP_NEGATE: {
 			if (!peek(0).isNumber())

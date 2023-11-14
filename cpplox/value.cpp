@@ -45,3 +45,23 @@ void ValueArray::Write(Value val)
 	values[count] = val;
 	count++;
 }
+
+bool valuesEqual(Value a, Value b)
+{
+	// 型が違ったら false
+	if (a.type != b.type) return false;
+
+	switch (a.type)
+	{
+	using enum ValueType;
+	case Bool:
+		return a.as.boolean == b.as.boolean;
+	case Nil:
+		return true; // nil == nil -> true とする
+	case Number:
+		// Value にパディング領域がある可能性があるため、memcmp はできない
+		return a.as.number == b.as.number;
+	default:
+		return false; // Unreachable
+	}
+}

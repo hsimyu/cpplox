@@ -67,3 +67,6 @@ struct ValueArray
 	int count = 0;
 	Value* values = nullptr;
 };
+
+bool valuesEqual(Value a, Value b);
+

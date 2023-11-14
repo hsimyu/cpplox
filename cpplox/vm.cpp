@@ -111,6 +111,16 @@ InterpretResult run()
 			push(Value::toBool(false));
 			break;
 
+		case OP_EQUAL:
+		{
+			Value b = pop();
+			Value a = pop();
+			push(Value::toBool(valuesEqual(a, b)));
+			break;
+		}
+
+		case OP_GREATER: BINARY_OP(Bool, >); break;
+		case OP_LESS: BINARY_OP(Bool, <); break;
 		case OP_ADD: BINARY_OP(Number, +); break;
 		case OP_SUBTRACT: BINARY_OP(Number, -); break;
 		case OP_MULTIPLY: BINARY_OP(Number, *); break;

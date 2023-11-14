@@ -63,6 +63,15 @@ void runtimeError(const char* format, ...)
 		push(Value::to##ValueType(a op b)); \
 	} while (false)
 
+bool isFalsey(Value value)
+{
+	// nil: falsey
+	// boolean ではない: truthy
+	// boolean で true: truthy
+	// boolean で false: falsey
+	return value.isNil() || (value.isBool() && !value.as.boolean);
+}
+
 InterpretResult run()
 {
 	for (;;)
@@ -106,6 +115,10 @@ InterpretResult run()
 		case OP_SUBTRACT: BINARY_OP(Number, -); break;
 		case OP_MULTIPLY: BINARY_OP(Number, *); break;
 		case OP_DIVIDE: BINARY_OP(Number, /); break;
+
+		case OP_NOT:
+			push(Value::toBool(isFalsey(pop())));
+			break;
 
 		case OP_NEGATE: {
 			if (!peek(0).isNumber())

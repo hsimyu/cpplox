@@ -9,13 +9,13 @@ void printValue(Value val)
 	{
 	using enum ValueType;
 	case Bool:
-		printf("%s", val.as.boolean ? "true" : "false");
+		printf("%s", AS_BOOL(val) ? "true" : "false");
 		break;
 	case Nil:
 		printf("nil");
 		break;
 	case Number:
-		printf("%g", val.as.number);
+		printf("%g", AS_NUMBER(val));
 		break;
 	}
 }
@@ -55,12 +55,12 @@ bool valuesEqual(Value a, Value b)
 	{
 	using enum ValueType;
 	case Bool:
-		return a.as.boolean == b.as.boolean;
+		return AS_BOOL(a) == AS_BOOL(b);
 	case Nil:
 		return true; // nil == nil -> true とする
 	case Number:
 		// Value にパディング領域がある可能性があるため、memcmp はできない
-		return a.as.number == b.as.number;
+		return AS_NUMBER(a) == AS_NUMBER(b);
 	default:
 		return false; // Unreachable
 	}

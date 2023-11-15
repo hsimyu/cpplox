@@ -58,8 +58,8 @@ void runtimeError(const char* format, ...)
             runtimeError("Operand must be numbers."); \
             return InterpretResult::RuntimeError; \
         } \
-		double b = pop().as.number; \
-		double a = pop().as.number; \
+		double b = AS_NUMBER(pop()); \
+		double a = AS_NUMBER(pop()); \
 		push(Value::to##ValueType(a op b)); \
 	} while (false)
 
@@ -69,7 +69,7 @@ bool isFalsey(Value value)
 	// boolean ではない: truthy
 	// boolean で true: truthy
 	// boolean で false: falsey
-	return value.isNil() || (value.isBool() && !value.as.boolean);
+	return value.isNil() || (value.isBool() && !AS_BOOL(value));
 }
 
 InterpretResult run()
@@ -136,7 +136,7 @@ InterpretResult run()
 				runtimeError("Operand must be a number.");
 				return RuntimeError;
 			}
-			push(Value::toNumber(-pop().as.number));
+			push(Value::toNumber(-AS_NUMBER(pop())));
 			break;
 		}
 

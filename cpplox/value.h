@@ -7,6 +7,9 @@ enum class ValueType
 	Number,
 };
 
+#define AS_BOOL(value) ((value).as.boolean)
+#define AS_NUMBER(value) ((value).as.number)
+
 struct Value
 {
 	ValueType type;

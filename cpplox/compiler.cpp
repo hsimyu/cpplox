@@ -256,7 +256,7 @@ void str()
 {
 	// start + 1 で最初の二重引用符を除外
 	// (length-1) - 1 で最後の二重引用符を除外
-	emitConstant(toObj(copyString(parser.previous.start + 1, parser.previous.length - 2)));
+	emitConstant(toObjValue(copyString(parser.previous.start + 1, parser.previous.length - 2)));
 }
 
 void unary()

@@ -2,6 +2,8 @@
 
 #include "common.h"
 #include "compiler.h"
+#include "object.h"
+#include "memory.h"
 
 #if DEBUG_TRACE_EXECUTION
 #include "debug.h"
@@ -9,6 +11,7 @@
 
 #include <cstdio>
 #include <cstdarg>
+#include <cstring>
 
 VM vm; // global vm instance
 
@@ -54,7 +57,7 @@ void runtimeError(const char* format, ...)
 
 #define BINARY_OP(ValueType, op) \
 	do { \
-        if (!peek(0).isNumber() || !peek(1).isNumber()) { \
+        if (!IS_NUMBER(peek(0)) || !IS_NUMBER(peek(1))) { \
             runtimeError("Operand must be numbers."); \
             return InterpretResult::RuntimeError; \
         } \
@@ -69,7 +72,22 @@ bool isFalsey(Value value)
 	// boolean ではない: truthy
 	// boolean で true: truthy
 	// boolean で false: falsey
-	return value.isNil() || (value.isBool() && !AS_BOOL(value));
+	return IS_NIL(value) || (IS_BOOL(value) && !AS_BOOL(value));
+}
+
+void concatenate()
+{
+	ObjString* a = AS_STRING(pop());
+	ObjString* b = AS_STRING(pop());
+
+	int length = a->length + b->length;
+	char* chars = allocate<char>(length + 1);
+	memcpy(chars, a->chars, a->length);
+	memcpy(chars + a->length, b->chars, b->length);
+	chars[length] = '\0';
+
+	ObjString* result = takeString(chars, length);
+	push(toObjValue(result));
 }
 
 InterpretResult run()
@@ -121,7 +139,26 @@ InterpretResult run()
 
 		case OP_GREATER: BINARY_OP(Bool, >); break;
 		case OP_LESS: BINARY_OP(Bool, <); break;
-		case OP_ADD: BINARY_OP(Number, +); break;
+		case OP_ADD:
+		{
+			if (IS_STRING(peek(0)) && IS_STRING(peek(1)))
+			{
+				concatenate();
+			}
+			else if (IS_NUMBER(peek(0)) && IS_NUMBER(peek(1)))
+			{
+				BINARY_OP(Number, +);
+				double b = AS_NUMBER(pop()); \
+				double a = AS_NUMBER(pop()); \
+				push(Value::toNumber(a + b)); \
+			}
+			else
+			{
+				runtimeError("Operand must be two numbers or two strings.");
+				return InterpretResult::RuntimeError;
+			}
+			break;
+		}
 		case OP_SUBTRACT: BINARY_OP(Number, -); break;
 		case OP_MULTIPLY: BINARY_OP(Number, *); break;
 		case OP_DIVIDE: BINARY_OP(Number, /); break;
@@ -131,7 +168,7 @@ InterpretResult run()
 			break;
 
 		case OP_NEGATE: {
-			if (!peek(0).isNumber())
+			if (!IS_NUMBER(peek(0)))
 			{
 				runtimeError("Operand must be a number.");
 				return RuntimeError;

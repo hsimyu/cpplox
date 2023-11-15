@@ -2,6 +2,7 @@
 
 #include "memory.h"
 #include <cstring>
+#include <cstdio>
 
 namespace
 {
@@ -25,11 +26,28 @@ ObjString* allocateString(char* chars, int length)
 
 }
 
+ObjString* takeString(char* chars, int length)
+{
+	// 指定した文字列を所有するのでそのまま割り当てる
+	return allocateString(chars, length);
+}
+
 ObjString* copyString(const char* chars, int length)
 {
+	// 指定した文字列を所有しないのでヒープ上に新しく割り当てる
 	char* heapChars = allocate<char>(length + 1);
 	memcpy(heapChars, chars, length);
 	heapChars[length] = '\0';
 	return allocateString(heapChars, length);
 }
 
+void printObject(Value value)
+{
+	switch (OBJ_TYPE(value))
+	{
+	using enum ObjType;
+	case String:
+		printf("%s", AS_CSTRING(value));
+		break;
+	}
+}

@@ -3,10 +3,10 @@
 #include "value.h"
 
 #define OBJ_TYPE(value) (AS_OBJ(value)->type)
-#define IS_STRING(value) isObjType(value, OBJ_STRING)
+#define IS_STRING(value) isObjType(value, ObjType::String)
 
-#define AS_STRING(value) (static_cast<ObjString*>(AS_OBJ(value)))
-#define AS_CSTRING(value) (static_cast<ObjString*>(AS_OBJ(value))->chars)
+#define AS_STRING(value) (reinterpret_cast<ObjString*>(AS_OBJ(value)))
+#define AS_CSTRING(value) (reinterpret_cast<ObjString*>(AS_OBJ(value))->chars)
 
 enum class ObjType
 {
@@ -25,14 +25,16 @@ struct ObjString
 	char* chars = nullptr;
 };
 
+ObjString* takeString(char* chars, int length);
 ObjString* copyString(const char* chars, int length);
+void printObject(Value value);
 
-inline Value toObj(ObjString* s)
+inline Value toObjValue(ObjString* s)
 {
 	return Value::toObj(reinterpret_cast<Obj*>(s));
 }
 
 inline bool isObjType(Value value, ObjType type)
 {
-	return value.isObj() && AS_OBJ(value)->type == type;
+	return IS_OBJ(value) && AS_OBJ(value)->type == type;
 }

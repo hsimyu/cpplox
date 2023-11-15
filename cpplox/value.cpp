@@ -1,7 +1,9 @@
 ﻿#include "value.h"
 #include "memory.h"
+#include "object.h"
 
 #include <cstdio>
+#include <cstring>
 
 void printValue(Value val)
 {
@@ -16,6 +18,9 @@ void printValue(Value val)
 		break;
 	case Number:
 		printf("%g", AS_NUMBER(val));
+		break;
+	case Obj:
+		printObject(val);
 		break;
 	}
 }
@@ -61,6 +66,14 @@ bool valuesEqual(Value a, Value b)
 	case Number:
 		// Value にパディング領域がある可能性があるため、memcmp はできない
 		return AS_NUMBER(a) == AS_NUMBER(b);
+	case Obj:
+		{
+			// とりあえず string として評価
+			// memcmp するので遅い
+			auto aString = AS_STRING(a);
+			auto bString = AS_STRING(b);
+			return aString->length == bString->length && memcmp(aString->chars, bString->chars, aString->length) == 0;
+		}
 	default:
 		return false; // Unreachable
 	}

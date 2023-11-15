@@ -11,6 +11,11 @@ enum class ValueType
 	Obj,
 };
 
+#define IS_BOOL(value) ((value).type == ValueType::Bool)
+#define IS_NIL(value) ((value).type == ValueType::Nil)
+#define IS_NUMBER(value) ((value).type == ValueType::Number)
+#define IS_OBJ(value) ((value).type == ValueType::Obj)
+
 #define AS_BOOL(value) ((value).as.boolean)
 #define AS_NUMBER(value) ((value).as.number)
 #define AS_OBJ(value) ((value).as.obj)
@@ -23,26 +28,6 @@ struct Value
 		double number;
 		Obj* obj;
 	} as;
-
-	bool isBool() const
-	{
-		return this->type == ValueType::Bool;
-	}
-
-	bool isNil() const
-	{
-		return this->type == ValueType::Nil;
-	}
-
-	bool isNumber() const
-	{
-		return this->type == ValueType::Number;
-	}
-
-	bool isObj() const
-	{
-		return this->type == ValueType::Obj;
-	}
 
 	static Value toBool(bool value)
 	{

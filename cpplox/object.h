@@ -25,6 +25,13 @@ struct ObjString
 	char* chars = nullptr;
 };
 
+ObjString* copyString(const char* chars, int length);
+
+inline Value toObj(ObjString* s)
+{
+	return Value::toObj(reinterpret_cast<Obj*>(s));
+}
+
 inline bool isObjType(Value value, ObjType type)
 {
 	return value.isObj() && AS_OBJ(value)->type == type;

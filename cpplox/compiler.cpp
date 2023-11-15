@@ -3,6 +3,7 @@
 #include "scanner.h"
 #include "chunk.h"
 #include "common.h"
+#include "object.h"
 
 #if DEBUG_PRINT_CODE
 #include "debug.h"
@@ -157,6 +158,7 @@ void endCompiler()
 }
 
 void number();
+void str();
 void unary();
 void binary();
 void literal();
@@ -184,7 +186,7 @@ ParseRule rules[] = {
 	/* TOKEN_LESS          */ {nullptr, binary, PREC_COMPARISON},
 	/* TOKEN_LESS_EQUAL    */ {nullptr, binary, PREC_COMPARISON},
 	/* TOKEN_IDENTIFIER    */ {nullptr, nullptr, PREC_NONE},
-	/* TOKEN_STRING        */ {nullptr, nullptr, PREC_NONE},
+	/* TOKEN_STRING        */ {str, nullptr, PREC_NONE},
 	/* TOKEN_NUMBER        */ {number, nullptr, PREC_NONE},
 	/* TOKEN_AND           */ {nullptr, nullptr, PREC_NONE},
 	/* TOKEN_CLASS         */ {nullptr, nullptr, PREC_NONE},
@@ -248,6 +250,13 @@ void number()
 	// TODO: std::from_chars のがよい?
 	double value = strtod(parser.previous.start, nullptr);
 	emitConstant(Value::toNumber(value));
+}
+
+void str()
+{
+	// start + 1 で最初の二重引用符を除外
+	// (length-1) - 1 で最後の二重引用符を除外
+	emitConstant(toObj(copyString(parser.previous.start + 1, parser.previous.length - 2)));
 }
 
 void unary()

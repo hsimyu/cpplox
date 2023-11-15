@@ -16,6 +16,7 @@ enum class ObjType
 struct Obj
 {
 	ObjType type;
+	Obj* next = nullptr;
 };
 
 struct ObjString
@@ -27,6 +28,7 @@ struct ObjString
 
 ObjString* takeString(char* chars, int length);
 ObjString* copyString(const char* chars, int length);
+void freeObject(Obj* obj);
 void printObject(Value value);
 
 inline Value toObjValue(ObjString* s)

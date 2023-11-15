@@ -191,15 +191,34 @@ InterpretResult run()
 }
 
 #undef BINARY_OP
+
+void freeObjects()
+{
+	Obj* target = vm.objects;
+	while (target != nullptr)
+	{
+		Obj* next = target->next;
+		freeObject(target);
+		target = next;
+	}
+}
+
 }
 
 void initVM()
 {
 	resetStack();
+	vm.objects = nullptr;
 }
 
 void freeVM()
 {
+	freeObjects();
+}
+
+VM* getVM()
+{
+	return &vm;
 }
 
 InterpretResult interpret(Chunk* chunk)

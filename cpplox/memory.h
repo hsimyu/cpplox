@@ -14,6 +14,12 @@ T* allocate(size_t count)
 }
 
 template<typename T>
+void free(T* ptr)
+{
+	reallocate(ptr, sizeof(T), 0);
+}
+
+template<typename T>
 T* grow_array(T* ptr, size_t oldCount, size_t newCount)
 {
 	auto newPtr = reallocate(ptr, sizeof(T) * oldCount, sizeof(T) * newCount);

@@ -1,14 +1,19 @@
 ﻿#pragma once
 
+struct Obj;
+struct ObjString;
+
 enum class ValueType
 {
 	Bool,
 	Nil,
 	Number,
+	Obj,
 };
 
 #define AS_BOOL(value) ((value).as.boolean)
 #define AS_NUMBER(value) ((value).as.number)
+#define AS_OBJ(value) ((value).as.obj)
 
 struct Value
 {
@@ -16,6 +21,7 @@ struct Value
 	union {
 		bool boolean;
 		double number;
+		Obj* obj;
 	} as;
 
 	bool isBool() const
@@ -31,6 +37,11 @@ struct Value
 	bool isNumber() const
 	{
 		return this->type == ValueType::Number;
+	}
+
+	bool isObj() const
+	{
+		return this->type == ValueType::Obj;
 	}
 
 	static Value toBool(bool value)
@@ -54,6 +65,14 @@ struct Value
 		return {
 			.type = ValueType::Number,
 			.as = { .number = number },
+		};
+	}
+
+	static Value toObj(Obj* obj)
+	{
+		return {
+			.type = ValueType::Obj,
+			.as = { .obj = obj },
 		};
 	}
 };

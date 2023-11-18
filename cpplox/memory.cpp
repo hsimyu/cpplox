@@ -2,7 +2,7 @@
 
 #include <stdlib.h>
 
-void* reallocate(void* ptr, size_t oldSize, size_t newSize)
+void* reallocate(void* ptr, int oldSize, int newSize)
 {
 	if (newSize == 0)
 	{

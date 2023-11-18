@@ -22,7 +22,7 @@ void Chunk::Write(uint8_t byte, int line)
 {
 	if (capacity < count + 1)
 	{
-		size_t oldCapacity = capacity;
+		auto oldCapacity = capacity;
 		capacity = grow_capacity(oldCapacity);
 		code = grow_array(code, oldCapacity, capacity);
 		lines = grow_array(lines, oldCapacity, capacity);

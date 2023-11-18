@@ -42,7 +42,7 @@ void ValueArray::Write(Value val)
 {
 	if (capacity < count + 1)
 	{
-		size_t oldCapacity = capacity;
+		auto oldCapacity = capacity;
 		capacity = grow_capacity(oldCapacity);
 		values = grow_array(values, oldCapacity, capacity);
 	}

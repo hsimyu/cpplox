@@ -34,7 +34,7 @@ struct Chunk
 	int AddConstant(Value value);
 
 	int count = 0;
-	size_t capacity = 0;
+	int capacity = 0;
 	uint8_t* code = nullptr;
 	int* lines = nullptr;
 	ValueArray constants;

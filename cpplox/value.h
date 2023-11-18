@@ -70,7 +70,7 @@ struct ValueArray
 	void Free();
 	void Write(Value value);
 
-	size_t capacity = 0;
+	int capacity = 0;
 	int count = 0;
 	Value* values = nullptr;
 };

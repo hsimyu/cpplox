@@ -140,6 +140,7 @@
     <ClCompile Include="memory.cpp" />
     <ClCompile Include="object.cpp" />
     <ClCompile Include="scanner.cpp" />
+    <ClCompile Include="table.cpp" />
     <ClCompile Include="value.cpp" />
     <ClCompile Include="vm.cpp" />
   </ItemGroup>
@@ -151,6 +152,7 @@
     <ClInclude Include="memory.h" />
     <ClInclude Include="object.h" />
     <ClInclude Include="scanner.h" />
+    <ClInclude Include="table.h" />
     <ClInclude Include="value.h" />
     <ClInclude Include="vm.h" />
   </ItemGroup>

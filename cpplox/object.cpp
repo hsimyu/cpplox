@@ -24,12 +24,25 @@ T* allocateObject(ObjType type)
 	return reinterpret_cast<T*>(o);
 }
 
-ObjString* allocateString(char* chars, int length)
+ObjString* allocateString(char* chars, int length, uint32_t hash)
 {
 	ObjString* s = allocateObject<ObjString>(ObjType::String);
 	s->length = length;
 	s->chars = chars;
+	s->hash = hash;
 	return s;
+}
+
+uint32_t hashString(const char* key, int length)
+{
+	// FNV-1a hashing
+	uint32_t hash = 2166136261u;
+	for (int i = 0; i < length; i++)
+	{
+		hash ^= static_cast<uint8_t>(key[i]);
+		hash *= 16777619;
+	}
+	return hash;
 }
 
 }
@@ -37,16 +50,17 @@ ObjString* allocateString(char* chars, int length)
 ObjString* takeString(char* chars, int length)
 {
 	// 指定した文字列を所有するのでそのまま割り当てる
-	return allocateString(chars, length);
+	return allocateString(chars, length, hashString(chars, length));
 }
 
 ObjString* copyString(const char* chars, int length)
 {
+	auto hash = hashString(chars, length);
 	// 指定した文字列を所有しないのでヒープ上に新しく割り当てる
 	char* heapChars = allocate<char>(length + 1);
 	memcpy(heapChars, chars, length);
 	heapChars[length] = '\0';
-	return allocateString(heapChars, length);
+	return allocateString(heapChars, length, hash);
 }
 
 void freeObject(Obj* obj)

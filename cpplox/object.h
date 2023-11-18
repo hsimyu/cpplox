@@ -1,5 +1,7 @@
 ﻿#pragma once
 
+#include <cstdint>
+
 #include "value.h"
 
 #define OBJ_TYPE(value) (AS_OBJ(value)->type)
@@ -24,6 +26,7 @@ struct ObjString
 	Obj obj;
 	int length = 0;
 	char* chars = nullptr;
+	uint32_t hash = 0;
 };
 
 ObjString* takeString(char* chars, int length);

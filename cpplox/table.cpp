@@ -9,12 +9,28 @@ Entry* findEntry(Entry* entries, int capacity, ObjString* key)
 {
 	// open-address hash table
 	uint32_t index = key->hash % capacity;
+	Entry* tombstone = nullptr;
 	for (;;) {
-		Entry* entryCandidate = &entries[index];
-		if (entryCandidate->key == key || entryCandidate->key == nullptr)
+		Entry* entry = &entries[index];
+		if (entry->key == nullptr)
 		{
-			// 指定した位置に入っているエントリのキーが一致しているか、未割り当てであればそれを返す
-			return entryCandidate;
+			if (IS_NIL(entry->value))
+			{
+				// 空のエントリ
+				return tombstone != nullptr ? tombstone : entry;
+			}
+			else
+			{
+				// 墓標を発見
+				// 最初に発見した墓標を使い回せるように記録しておく
+				// 空のエントリに到達するまでは探針を続ける
+				if (tombstone == nullptr) tombstone = entry;
+			}
+		}
+		else if (entry->key == key)
+		{
+			// キーを発見した
+			return entry;
 		}
 		index = (index + 1) % capacity;
 	}
@@ -30,6 +46,9 @@ void adjustCapacity(Table* table, int capacity)
 		entries[i].value = Value::toNil();
 	}
 
+	// 墓標を除いた数を数え直す
+	table->count = 0;
+
 	// 新しい容量のハッシュテーブルに旧テーブルのエントリを割り当て直す
 	for (int i = 0; i < table->capacity; i++)
 	{
@@ -39,6 +58,7 @@ void adjustCapacity(Table* table, int capacity)
 		Entry* dest = findEntry(entries, capacity, source->key);
 		dest->key = source->key;
 		dest->value = source->value;
+		table->count++;
 	}
 
 	free_array(table->entries, table->capacity);
@@ -64,6 +84,17 @@ void freeTable(Table* table)
 	initTable(table);
 }
 
+bool tableGet(Table* table, ObjString* key, Value* value)
+{
+	if (table->count == 0) return false;
+
+	Entry* entry = findEntry(table->entries, table->capacity, key);
+	if (entry->key == nullptr) return false;
+
+	*value = entry->value;
+	return true;
+}
+
 bool tableSet(Table* table, ObjString* key, Value value)
 {
 	// allocate table entries
@@ -76,7 +107,8 @@ bool tableSet(Table* table, ObjString* key, Value value)
 	Entry* entry = findEntry(table->entries, table->capacity, key);
 	bool isNewKey = (entry->key = nullptr);
 
-	if (isNewKey)
+	// 新しいキーかつ墓標でなければカウントを増やす
+	if (isNewKey && IS_NIL(entry->value))
 	{
 		table->count++;
 	}
@@ -84,6 +116,19 @@ bool tableSet(Table* table, ObjString* key, Value value)
 	entry->key = key;
 	entry->value = value;
 	return isNewKey;
+}
+
+bool tableDelete(Table* table, ObjString* key)
+{
+	if (table->count == 0) return false;
+
+	Entry* entry = findEntry(table->entries, table->capacity, key);
+	if (entry->key == nullptr) return false;
+
+	// エントリに墓標を立てる
+	entry->key = nullptr;
+	entry->value = Value::toBool(true);
+	return true;
 }
 
 void tableAddAll(Table* from, Table* to)

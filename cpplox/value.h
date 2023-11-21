@@ -60,6 +60,14 @@ struct Value
 			.as = { .obj = obj },
 		};
 	}
+
+	static Value toObj(ObjString* obj)
+	{
+		return {
+			.type = ValueType::Obj,
+			.as = { .obj = reinterpret_cast<Obj*>(obj) },
+		};
+	}
 };
 
 void printValue(Value val);

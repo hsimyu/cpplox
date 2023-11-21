@@ -260,6 +260,23 @@ void parsePrecedence(Precedence precedence)
 	}
 }
 
+uint8_t identifierConstant(Token* name)
+{
+	// 変数名を表す文字列を、オブジェクトとして定数表に格納する
+	return makeConstant(Value::toObj(copyString(name->start, name->length)));
+}
+
+uint8_t parseVariable(const char* errorMessage)
+{
+	consume(TOKEN_IDENTIFIER, errorMessage);
+	return identifierConstant(&parser.previous);
+}
+
+void defineVariable(uint8_t global)
+{
+	emitBytes(OP_DEFINE_GLOBAL, global);
+}
+
 void number()
 {
 	// TODO: std::from_chars のがよい?
@@ -363,6 +380,24 @@ void expression()
 	parsePrecedence(PREC_ASSIGNMENT);
 }
 
+void varDeclaration()
+{
+	uint8_t global = parseVariable("Expect variable name.");
+
+	if (match(TOKEN_EQUAL))
+	{
+		expression();
+	}
+	else
+	{
+		// var foo; は var foo = nil; と等価とする
+		emitByte(OP_NIL);
+	}
+
+	consume(TOKEN_SEMICOLON, "Expect ';' after variable declaration.");
+	defineVariable(global);
+}
+
 void expressionStatement()
 {
 	// expressionStmt := expression ";" ;
@@ -408,8 +443,15 @@ void synchronize()
 
 void declaration()
 {
-	// declaration := statement
-	statement();
+	// declaration := varDecl | statement
+	if (match(TOKEN_VAR))
+	{
+		varDeclaration();
+	}
+	else
+	{
+		statement();
+	}
 
 	if (parser.panicMode) synchronize();
 }

@@ -14,6 +14,7 @@ struct VM
 	uint8_t* ip = nullptr;
 	Value stack[STACK_COUNT_MAX] = { };
 	Value* stackTop = nullptr;
+	Table globals;
 	Table strings;
 	Obj* objects = nullptr;
 };

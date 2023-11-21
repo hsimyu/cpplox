@@ -28,6 +28,11 @@ Value read_constant()
 	return (vm.chunk->constants.values[read_byte()]);
 }
 
+ObjString* read_string()
+{
+	return AS_STRING(read_constant());
+}
+
 Value peek(int distance)
 {
 	return vm.stackTop[-1 - distance];
@@ -133,6 +138,14 @@ InterpretResult run()
 			pop();
 			break;
 
+		case OP_DEFINE_GLOBAL:
+		{
+			ObjString* name = read_string();
+			tableSet(&vm.globals, name, peek(0));
+			pop();
+			break;
+		}
+
 		case OP_EQUAL:
 		{
 			Value b = pop();
@@ -217,11 +230,13 @@ void initVM()
 {
 	resetStack();
 	vm.objects = nullptr;
+	initTable(&vm.globals);
 	initTable(&vm.strings);
 }
 
 void freeVM()
 {
+	freeTable(&vm.globals);
 	freeTable(&vm.strings);
 	freeObjects();
 }

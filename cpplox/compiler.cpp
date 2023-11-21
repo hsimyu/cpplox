@@ -112,6 +112,18 @@ void consume(TokenType type, const char* message)
 	errorAtCurrent(message);
 }
 
+bool check(TokenType type)
+{
+	return parser.current.type == type;
+}
+
+bool match(TokenType type)
+{
+	if (!check(type)) return false;
+	advance();
+	return true;
+}
+
 void emitByte(uint8_t byte)
 {
 	currentChunk()->Write(byte, parser.previous.line);
@@ -163,6 +175,9 @@ void unary();
 void binary();
 void literal();
 void grouping();
+void expression();
+void declaration();
+void statement();
 
 ParseRule rules[] = {
 	// [前置パーサー、中置パーサー、中置パーサーの優先順位] の表
@@ -348,6 +363,29 @@ void expression()
 	parsePrecedence(PREC_ASSIGNMENT);
 }
 
+void printStatement()
+{
+	// printStmt := "print" expression ";" ;
+	expression();
+	consume(TOKEN_SEMICOLON, "Expect ';' after value.");
+	emitByte(OP_PRINT);
+}
+
+void declaration()
+{
+	// declaration := statement
+	statement();
+}
+
+void statement()
+{
+	// statement := printStmt
+	if (match(TOKEN_PRINT))
+	{
+		printStatement();
+	}
+}
+
 void grouping()
 {
 	expression();
@@ -363,9 +401,11 @@ bool compile(const char* source, Chunk* chunk)
 
 	advance();
 
-	expression();
+	while (!match(TOKEN_EOF))
+	{
+		declaration();
+	}
 
-	consume(TOKEN_EOF, "Expect end of expression.");
 	endCompiler();
 	return !parser.hadError;
 }

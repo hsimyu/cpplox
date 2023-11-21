@@ -177,9 +177,14 @@ InterpretResult run()
 			break;
 		}
 
-		case OP_RETURN: {
+		case OP_PRINT: {
+			// stack トップに expression の評価結果が置かれているはず
 			printValue(pop());
 			printf("\n");
+			break;
+		}
+
+		case OP_RETURN: {
 			return Ok;
 		}
 

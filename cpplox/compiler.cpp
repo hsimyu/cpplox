@@ -363,14 +363,6 @@ void expression()
 	parsePrecedence(PREC_ASSIGNMENT);
 }
 
-void printStatement()
-{
-	// printStmt := "print" expression ";" ;
-	expression();
-	consume(TOKEN_SEMICOLON, "Expect ';' after value.");
-	emitByte(OP_PRINT);
-}
-
 void expressionStatement()
 {
 	// expressionStmt := expression ";" ;
@@ -379,10 +371,47 @@ void expressionStatement()
 	emitByte(OP_POP);
 }
 
+void printStatement()
+{
+	// printStmt := "print" expression ";" ;
+	expression();
+	consume(TOKEN_SEMICOLON, "Expect ';' after value.");
+	emitByte(OP_PRINT);
+}
+
+void synchronize()
+{
+	parser.panicMode = false;
+
+	while (parser.current.type != TOKEN_EOF)
+	{
+		if (parser.previous.type == TOKEN_SEMICOLON) return; // ; を見つけたので同期完了
+
+		switch (parser.current.type)
+		{
+		case TOKEN_CLASS:
+		case TOKEN_FUN:
+		case TOKEN_VAR:
+		case TOKEN_FOR:
+		case TOKEN_IF:
+		case TOKEN_WHILE:
+		case TOKEN_PRINT:
+		case TOKEN_RETURN:
+			return; // 同期できるので抜ける
+		default:
+			break;
+		}
+
+		advance();
+	}
+}
+
 void declaration()
 {
 	// declaration := statement
 	statement();
+
+	if (parser.panicMode) synchronize();
 }
 
 void statement()

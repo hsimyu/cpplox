@@ -2,6 +2,7 @@
 
 #include "chunk.h"
 #include "value.h"
+#include "table.h"
 
 constexpr size_t STACK_COUNT_MAX = 1024;
 
@@ -13,6 +14,7 @@ struct VM
 	uint8_t* ip = nullptr;
 	Value stack[STACK_COUNT_MAX] = { };
 	Value* stackTop = nullptr;
+	Table strings;
 	Obj* objects = nullptr;
 };
 

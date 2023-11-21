@@ -67,13 +67,8 @@ bool valuesEqual(Value a, Value b)
 		// Value にパディング領域がある可能性があるため、memcmp はできない
 		return AS_NUMBER(a) == AS_NUMBER(b);
 	case Obj:
-		{
-			// とりあえず string として評価
-			// memcmp するので遅い
-			auto aString = AS_STRING(a);
-			auto bString = AS_STRING(b);
-			return aString->length == bString->length && memcmp(aString->chars, bString->chars, aString->length) == 0;
-		}
+		// 文字列はインターン化されているので、すべてのオブジェクトはポインタとして比較してよい
+		return AS_OBJ(a) == AS_OBJ(b);
 	default:
 		return false; // Unreachable
 	}

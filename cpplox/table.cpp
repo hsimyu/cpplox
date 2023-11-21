@@ -1,6 +1,7 @@
 ﻿#include "table.h"
 
 #include "memory.h"
+#include <cstring>
 
 namespace
 {
@@ -140,5 +141,29 @@ void tableAddAll(Table* from, Table* to)
 		{
 			tableSet(to, entry->key, entry->value);
 		}
+	}
+}
+
+ObjString* tableFindString(Table* table, const char* chars, int length, uint32_t hash)
+{
+	if (table->count == 0) return nullptr;
+
+	uint32_t index = hash % table->capacity;
+	for (;;)
+	{
+		Entry* entry = &table->entries[index];
+		if (entry->key == nullptr)
+		{
+			// nil が入っているエントリを見つけたら返す
+			// nil ではない場合は墓標
+			if (IS_NIL(entry->value)) return nullptr;
+		}
+		else if (entry->key->length == length && entry->key->hash == hash && memcmp(entry->key->chars, chars, length))
+		{
+			// 長さ、ハッシュ、メモリ内容全てが一致したキーを見つけたら、
+			// 所望の文字列を発見したとみなせる
+			return entry->key;
+		}
+		index = (index + 1) % table->capacity;
 	}
 }

@@ -30,6 +30,9 @@ ObjString* allocateString(char* chars, int length, uint32_t hash)
 	s->length = length;
 	s->chars = chars;
 	s->hash = hash;
+	// 文字列の intern 化
+	// Value はなんでもいいので nil を入れる
+	tableSet(&getVM()->strings, s, Value::toNil());
 	return s;
 }
 
@@ -49,13 +52,27 @@ uint32_t hashString(const char* key, int length)
 
 ObjString* takeString(char* chars, int length)
 {
+	auto hash = hashString(chars, length);
+	ObjString* interned = tableFindString(&getVM()->strings, chars, length, hash);
+
+	if (interned != nullptr)
+	{
+		// すでに vm がインターン化済みだったのでそれを返す
+		// -> 所有権を譲渡された文字列が必要なくなったので、解放する
+		free_array(chars, length + 1);
+		return interned;
+	}
+
 	// 指定した文字列を所有するのでそのまま割り当てる
-	return allocateString(chars, length, hashString(chars, length));
+	return allocateString(chars, length, hash);
 }
 
 ObjString* copyString(const char* chars, int length)
 {
 	auto hash = hashString(chars, length);
+	ObjString* interned = tableFindString(&getVM()->strings, chars, length, hash);
+	if (interned != nullptr) return interned; // 生成済みのエントリがあったのでそれを返す
+
 	// 指定した文字列を所有しないのでヒープ上に新しく割り当てる
 	char* heapChars = allocate<char>(length + 1);
 	memcpy(heapChars, chars, length);

@@ -147,7 +147,6 @@ InterpretResult run()
 			}
 			else if (IS_NUMBER(peek(0)) && IS_NUMBER(peek(1)))
 			{
-				BINARY_OP(Number, +);
 				double b = AS_NUMBER(pop()); \
 				double a = AS_NUMBER(pop()); \
 				push(Value::toNumber(a + b)); \

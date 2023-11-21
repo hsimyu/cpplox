@@ -129,6 +129,10 @@ InterpretResult run()
 			push(Value::toBool(false));
 			break;
 
+		case OP_POP:
+			pop();
+			break;
+
 		case OP_EQUAL:
 		{
 			Value b = pop();

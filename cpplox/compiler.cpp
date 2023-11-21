@@ -371,6 +371,14 @@ void printStatement()
 	emitByte(OP_PRINT);
 }
 
+void expressionStatement()
+{
+	// expressionStmt := expression ";" ;
+	expression();
+	consume(TOKEN_SEMICOLON, "Expect ';' after value.");
+	emitByte(OP_POP);
+}
+
 void declaration()
 {
 	// declaration := statement
@@ -379,10 +387,14 @@ void declaration()
 
 void statement()
 {
-	// statement := printStmt
+	// statement := printStmt | expressionStmt
 	if (match(TOKEN_PRINT))
 	{
 		printStatement();
+	}
+	else
+	{
+		expressionStatement();
 	}
 }
 

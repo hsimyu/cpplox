@@ -295,7 +295,17 @@ void str()
 void namedVariable(Token name)
 {
 	uint8_t arg = identifierConstant(&name);
-	emitBytes(OP_GET_GLOBAL, arg);
+
+	if (match(TOKEN_EQUAL))
+	{
+		// identifier の後に = があったら、後段にあるものを右辺値としてセット命令で包む
+		expression();
+		emitBytes(OP_SET_GLOBAL, arg);
+	}
+	else
+	{
+		emitBytes(OP_GET_GLOBAL, arg);
+	}
 }
 
 void variable()

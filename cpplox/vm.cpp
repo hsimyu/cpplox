@@ -158,6 +158,19 @@ InterpretResult run()
 			break;
 		}
 
+		case OP_SET_GLOBAL:
+		{
+			ObjString* name = read_string();
+			if (tableSet(&vm.globals, name, peek(0)))
+			{
+				// "新しいキーだったら" ランタイムエラーにする
+				tableDelete(&vm.globals, name);
+				runtimeError("Undefined variable '%s'.", name->chars);
+				return RuntimeError;
+			}
+			break;
+		}
+
 		case OP_EQUAL:
 		{
 			Value b = pop();

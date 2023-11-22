@@ -21,6 +21,10 @@ struct Parser
 	Token previous;
 	bool hadError = false;
 	bool panicMode = false;
+
+	// 関数共通パラメータを引数を介さないで伝えるための adhoc な定義
+	// もっと定義が増えたら、ParseFn を variant 化する方がよい
+	bool canAssign = false;
 };
 
 // 優先順位 (値が小さいほど優先順位が低い)
@@ -242,6 +246,9 @@ void parsePrecedence(Precedence precedence)
 	}
 
 	// 前置解析を行う
+	bool canAssign = precedence <= PREC_ASSIGNMENT; // 優先順位が ASSIGNMENT より低い場合は代入不可
+
+	parser.canAssign = canAssign;
 	prefixRule();
 
 	// 現在指しているトークンの優先度が指定した優先度と同じか低い間はループし続ける
@@ -257,7 +264,14 @@ void parsePrecedence(Precedence precedence)
 			return;
 		}
 
+		parser.canAssign = canAssign;
 		infixRule();
+	}
+
+	// "=" が式の一部として消費されなかった場合
+	if (canAssign && match(TOKEN_EQUAL))
+	{
+		error("Invalid assignment target.");
 	}
 }
 
@@ -294,9 +308,10 @@ void str()
 
 void namedVariable(Token name)
 {
+	bool canAssign = parser.canAssign;
 	uint8_t arg = identifierConstant(&name);
 
-	if (match(TOKEN_EQUAL))
+	if (canAssign && match(TOKEN_EQUAL))
 	{
 		// identifier の後に = があったら、後段にあるものを右辺値としてセット命令で包む
 		expression();

@@ -138,6 +138,18 @@ InterpretResult run()
 			pop();
 			break;
 
+		case OP_GET_GLOBAL:
+		{
+			ObjString* name = read_string();
+			Value value;
+			if (!tableGet(&vm.globals, name, &value)) {
+				runtimeError("Undefined variable '%s'.", name->chars);
+				return RuntimeError;
+			}
+			push(value);
+			break;
+		}
+
 		case OP_DEFINE_GLOBAL:
 		{
 			ObjString* name = read_string();

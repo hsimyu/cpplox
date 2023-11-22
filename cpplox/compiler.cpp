@@ -171,6 +171,7 @@ void endCompiler()
 
 void number();
 void str();
+void variable();
 void unary();
 void binary();
 void literal();
@@ -200,7 +201,7 @@ ParseRule rules[] = {
 	/* TOKEN_GREATER_EQUAL */ {nullptr, binary, PREC_COMPARISON},
 	/* TOKEN_LESS          */ {nullptr, binary, PREC_COMPARISON},
 	/* TOKEN_LESS_EQUAL    */ {nullptr, binary, PREC_COMPARISON},
-	/* TOKEN_IDENTIFIER    */ {nullptr, nullptr, PREC_NONE},
+	/* TOKEN_IDENTIFIER    */ {variable, nullptr, PREC_NONE},
 	/* TOKEN_STRING        */ {str, nullptr, PREC_NONE},
 	/* TOKEN_NUMBER        */ {number, nullptr, PREC_NONE},
 	/* TOKEN_AND           */ {nullptr, nullptr, PREC_NONE},
@@ -289,6 +290,17 @@ void str()
 	// start + 1 で最初の二重引用符を除外
 	// (length-1) - 1 で最後の二重引用符を除外
 	emitConstant(toObjValue(copyString(parser.previous.start + 1, parser.previous.length - 2)));
+}
+
+void namedVariable(Token name)
+{
+	uint8_t arg = identifierConstant(&name);
+	emitBytes(OP_GET_GLOBAL, arg);
+}
+
+void variable()
+{
+	namedVariable(parser.previous);
 }
 
 void unary()

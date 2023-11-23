@@ -52,7 +52,21 @@ struct ParseRule
 	Precedence precedence;
 };
 
+struct Local
+{
+	Token name;
+	int depth = 0;
+};
+
+struct Compiler
+{
+	Local locals[LOCAL_VARIABLE_COUNT];
+	int localCount = 0;
+	int scopeDepth = 0;
+};
+
 Parser parser;
+Compiler* current = nullptr;
 Chunk* compilingChunk = nullptr;
 
 Chunk* currentChunk()
@@ -159,6 +173,13 @@ void emitConstant(Value value)
 void emitReturn()
 {
 	emitByte(OP_RETURN);
+}
+
+void initCompiler(Compiler* compiler)
+{
+	compiler->localCount = 0;
+	compiler->scopeDepth = 0;
+	current = compiler;
 }
 
 void endCompiler()
@@ -517,6 +538,10 @@ void grouping()
 bool compile(const char* source, Chunk* chunk)
 {
 	initScanner(source);
+
+	Compiler compiler;
+	initCompiler(&compiler);
+
 	compilingChunk = chunk;
 
 	advance();

@@ -138,6 +138,22 @@ InterpretResult run()
 			pop();
 			break;
 
+		case OP_GET_LOCAL:
+		{
+			// ローカル変数のインデックスはスタックのインデックスと一致している
+			uint8_t slot = read_byte();
+			push(vm.stack[slot]);
+			break;
+		}
+
+		case OP_SET_LOCAL:
+		{
+			// ローカル変数のインデックスはスタックのインデックスと一致している
+			uint8_t slot = read_byte();
+			vm.stack[slot] = peek(0); // 値がそのまま代入文の評価値になるので、pop() しない
+			break;
+		}
+
 		case OP_GET_GLOBAL:
 		{
 			ObjString* name = read_string();

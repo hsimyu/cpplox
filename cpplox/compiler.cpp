@@ -326,6 +326,22 @@ bool identifierEqual(Token* a, Token* b)
 	return memcmp(a->start, b->start, a->length) == 0;
 }
 
+int resolveLocal(Compiler* compiler, Token* name)
+{
+	for (int i = compiler->localCount - 1; i >= 0; i--)
+	{
+		Local* local = &compiler->locals[i];
+		if (identifierEqual(name, &local->name))
+		{
+			// found
+			return i;
+		}
+	}
+
+	// not found
+	return -1;
+}
+
 void addLocal(Token name)
 {
 	if (current->localCount == LOCAL_VARIABLE_COUNT)
@@ -399,17 +415,30 @@ void str()
 void namedVariable(Token name)
 {
 	bool canAssign = parser.canAssign;
-	uint8_t arg = identifierConstant(&name);
+	
+	uint8_t getOp, setOp;
+	int arg = resolveLocal(current, &name);
+	if (arg != -1)
+	{
+		getOp = OP_GET_LOCAL;
+		setOp = OP_SET_LOCAL;
+	}
+	else
+	{
+		arg = identifierConstant(&name);
+		getOp = OP_GET_GLOBAL;
+		setOp = OP_SET_GLOBAL;
+	}
 
 	if (canAssign && match(TOKEN_EQUAL))
 	{
 		// identifier の後に = があったら、後段にあるものを右辺値としてセット命令で包む
 		expression();
-		emitBytes(OP_SET_GLOBAL, arg);
+		emitBytes(setOp, static_cast<uint8_t>(arg));
 	}
 	else
 	{
-		emitBytes(OP_GET_GLOBAL, arg);
+		emitBytes(getOp, static_cast<uint8_t>(arg));
 	}
 }
 

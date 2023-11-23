@@ -203,6 +203,13 @@ void beginScope()
 void endScope()
 {
 	current->scopeDepth--;
+
+	// pop local variables on stack
+	while (current->localCount > 0 && current->locals[current->localCount - 1].depth > current->scopeDepth)
+	{
+		emitByte(OP_POP);
+		current->localCount--;
+	}
 }
 
 void number();

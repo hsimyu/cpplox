@@ -11,6 +11,7 @@
 
 #include <cstdio>
 #include <cstdlib>
+#include <cstring>
 
 namespace
 {
@@ -312,6 +313,12 @@ uint8_t identifierConstant(Token* name)
 	return makeConstant(Value::toObj(copyString(name->start, name->length)));
 }
 
+bool identifierEqual(Token* a, Token* b)
+{
+	if (a->length != b->length) return false;
+	return memcmp(a->start, b->start, a->length) == 0;
+}
+
 void addLocal(Token name)
 {
 	if (current->localCount == LOCAL_VARIABLE_COUNT)
@@ -330,6 +337,22 @@ void declareVariable()
 	if (current->scopeDepth == 0) return;
 
 	Token* name = &parser.previous;
+
+	// search local variables in the same scope with the same name
+	for (int i = current->localCount - 1; i >= 0; i--)
+	{
+		Local* local = &current->locals[i];
+		if (local->depth != -1 && local->depth < current->scopeDepth)
+		{
+			// no variables in the same scope
+			break;
+		}
+
+		if (identifierEqual(name, &local->name))
+		{
+			error("Already a variable with this name in this scope.");
+		}
+	}
 	addLocal(*name);
 }
 

@@ -312,14 +312,43 @@ uint8_t identifierConstant(Token* name)
 	return makeConstant(Value::toObj(copyString(name->start, name->length)));
 }
 
+void addLocal(Token name)
+{
+	if (current->localCount == LOCAL_VARIABLE_COUNT)
+	{
+		error("Too many local variables in function.");
+		return;
+	}
+
+	Local* local = &current->locals[current->localCount++];
+	local->name = name;
+	local->depth = current->scopeDepth;
+}
+
+void declareVariable()
+{
+	if (current->scopeDepth == 0) return;
+
+	Token* name = &parser.previous;
+	addLocal(*name);
+}
+
 uint8_t parseVariable(const char* errorMessage)
 {
 	consume(TOKEN_IDENTIFIER, errorMessage);
+
+	declareVariable();
+	if (current->scopeDepth > 0) return 0;
+
 	return identifierConstant(&parser.previous);
 }
 
 void defineVariable(uint8_t global)
 {
+	if (current->scopeDepth > 0)
+	{
+		return;
+	}
 	emitBytes(OP_DEFINE_GLOBAL, global);
 }
 

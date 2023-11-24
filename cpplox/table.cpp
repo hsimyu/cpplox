@@ -158,7 +158,7 @@ ObjString* tableFindString(Table* table, const char* chars, int length, uint32_t
 			// nil ではない場合は墓標
 			if (IS_NIL(entry->value)) return nullptr;
 		}
-		else if (entry->key->length == length && entry->key->hash == hash && memcmp(entry->key->chars, chars, length))
+		else if (entry->key->length == length && entry->key->hash == hash && memcmp(entry->key->chars, chars, length) == 0)
 		{
 			// 長さ、ハッシュ、メモリ内容全てが一致したキーを見つけたら、
 			// 所望の文字列を発見したとみなせる

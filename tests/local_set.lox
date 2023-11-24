@@ -1,0 +1,7 @@
+var a = "global";
+print a;
+{
+    var a = "inner";
+    print a;
+}
+print a;

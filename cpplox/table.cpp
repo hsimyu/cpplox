@@ -106,7 +106,7 @@ bool tableSet(Table* table, ObjString* key, Value value)
 	}
 
 	Entry* entry = findEntry(table->entries, table->capacity, key);
-	bool isNewKey = (entry->key = nullptr);
+	bool isNewKey = (entry->key == nullptr);
 
 	// 新しいキーかつ墓標でなければカウントを増やす
 	if (isNewKey && IS_NIL(entry->value))

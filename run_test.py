@@ -9,6 +9,8 @@ def run():
     lox_files = [file for file in os.listdir(tests_directory) if file.endswith('.lox')]
     lox_files.sort()  # ファイルをソート
 
+    test_failed = False
+
     # .loxファイルを順番に実行
     for lox_file in lox_files:
         file_path = os.path.join(tests_directory, lox_file)
@@ -27,7 +29,18 @@ def run():
             for line in process.stderr:
                 print(line.decode(), end='')
         
-        print(f"ExitCode: {1}")
+        if return_code == 0:
+            print(f"[PASS] {lox_file}")
+        else:
+            print(f"[FAIL] {lox_file}")
+            test_failed = True
+    
+    if not test_failed:
+        print(f"[Result] Success")
+        exit(0)
+    else:
+        print(f"[Result] Failure")
+        exit(1)
 
 if __name__ == "__main__":
     run()

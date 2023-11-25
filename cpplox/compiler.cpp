@@ -649,6 +649,69 @@ void expressionStatement()
 	emitByte(OP_POP);
 }
 
+void forStatement()
+{
+	beginScope();
+
+	// forStmt := "for" "(" (";" | varDecl | expressionStmt) (";" | expression) (expression)* ")" statement ;
+	consume(TOKEN_LEFT_PAREN, "Expect '(' after 'for'.");
+
+	if (match(TOKEN_SEMICOLON))
+	{
+		// 何もしない
+	}
+	else if (match(TOKEN_VAR))
+	{
+		// NOTE: ここで単に declaration としてしまうと全ての statement を許してしまう
+		varDeclaration();
+	}
+	else
+	{
+		expressionStatement();
+	}
+
+	int loopStart = currentChunk()->count;
+	int exitJump = -1;
+	if (!match(TOKEN_SEMICOLON))
+	{
+		expression();
+		consume(TOKEN_SEMICOLON, "Expect ';' after loop condition.");
+
+		// 条件が偽のとき、評価値をスタックに残したままループを抜ける
+		exitJump = emitJump(OP_JUMP_IF_FALSE);
+		emitByte(OP_POP);
+	}
+
+	if (!match(TOKEN_RIGHT_PAREN))
+	{
+		// インクリメント節がある場合、まずインクリメント節を飛び越えて本文を実行する (OP_JUMP)
+		// そして、本文実行後のジャンプ先をインクリメント節の実行開始に置き換えておく
+		// 本文実行後にインクリメント節を実行し、その後条件節の実行前までジャンプする
+		int bodyJump = emitJump(OP_JUMP);
+		int incrementStart = currentChunk()->count;
+		expression();
+		emitByte(OP_POP);
+		consume(TOKEN_RIGHT_PAREN, "Expect ')' after for clauses.");
+
+		emitLoop(loopStart);
+		loopStart = incrementStart; // ジャンプ先差し替え
+		patchJump(bodyJump);
+	}
+
+	statement();
+	emitLoop(loopStart);
+
+	if (exitJump != -1)
+	{
+		// exit の場合はループ命令を通り越した位置まで Jump
+		patchJump(exitJump);
+		// 条件の評価値を POP
+		emitByte(OP_POP);
+	}
+
+	endScope();
+}
+
 void ifStatement()
 {
 	// ifStmt := "if" "(" expression ")" statement ("else" statement)*
@@ -748,6 +811,10 @@ void statement()
 	if (match(TOKEN_PRINT))
 	{
 		printStatement();
+	}
+	else if (match(TOKEN_FOR))
+	{
+		forStatement();
 	}
 	else if (match(TOKEN_IF))
 	{

@@ -9,11 +9,14 @@ def run():
     lox_files = [file for file in os.listdir(tests_directory) if file.endswith('.lox')]
     lox_files.sort()  # ファイルをソート
 
-    test_failed = False
+    test_succeed = True
+
+    results = []
 
     # .loxファイルを順番に実行
     for lox_file in lox_files:
         file_path = os.path.join(tests_directory, lox_file)
+        print(f"============================================")
         print(f"run: {lox_file}")
 
         command = [binary_path, file_path]
@@ -31,15 +34,20 @@ def run():
         
         if return_code == 0:
             print(f"[PASS] {lox_file}")
+            results.append({ "file": lox_file, "result": True})
         else:
             print(f"[FAIL] {lox_file}")
-            test_failed = True
+            results.append({ "file": lox_file, "result": False})
+            test_succeed = False
+
+    print(f"============================================")
+    print(f"[Result] {test_succeed}")
+    for r in results:
+        print(f"- {r["file"]}: {r["result"]}")
     
-    if not test_failed:
-        print(f"[Result] Success")
+    if test_succeed:
         exit(0)
     else:
-        print(f"[Result] Failure")
         exit(1)
 
 if __name__ == "__main__":

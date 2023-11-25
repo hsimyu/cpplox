@@ -154,6 +154,33 @@ void emitBytes(uint8_t byte1, uint8_t byte2)
 	emitByte(byte2);
 }
 
+int emitJump(uint8_t instruction)
+{
+	emitByte(instruction);
+	// placeholder for back pacthing
+	emitByte(0xFF);
+	emitByte(0xFF);
+	// return chunk offset for patching
+	return currentChunk()->count - 2;
+}
+
+void patchJump(int offset)
+{
+	// jump すべき分を決定する
+	// currentChunk の数にはジャンプ命令のダミーオペランド分も含まれているので、
+	// -2 して差し引いておく
+	int jump = currentChunk()->count - offset - 2;
+
+	if (jump > UINT16_MAX)
+	{
+		// cannot jump larger than 65535 instruction
+		error("Too match code to jump over");
+	}
+
+	currentChunk()->code[offset] = static_cast<uint8_t>((jump >> 8) & 0xFF);
+	currentChunk()->code[offset + 1] = static_cast<uint8_t>(jump & 0xFF);
+}
+
 uint8_t makeConstant(Value value)
 {
 	int constant = currentChunk()->AddConstant(value);
@@ -581,6 +608,19 @@ void expressionStatement()
 	emitByte(OP_POP);
 }
 
+void ifStatement()
+{
+	// ifStmt := "if" "(" expression ")" statement
+	consume(TOKEN_LEFT_PAREN, "Expect '(' after 'if'.");
+	expression();
+	consume(TOKEN_RIGHT_PAREN, "Expect ')' after condition.");
+
+	int thenJmp = emitJump(OP_JUMP_IF_FALSE);
+	statement();
+
+	patchJump(thenJmp);
+}
+
 void printStatement()
 {
 	// printStmt := "print" expression ";" ;
@@ -637,6 +677,10 @@ void statement()
 	if (match(TOKEN_PRINT))
 	{
 		printStatement();
+	}
+	else if (match(TOKEN_IF))
+	{
+		ifStatement();
 	}
 	else if (match(TOKEN_LEFT_BRACE))
 	{

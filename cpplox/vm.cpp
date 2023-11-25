@@ -23,6 +23,13 @@ uint8_t read_byte()
 	return *vm.ip++;
 }
 
+uint16_t read_short()
+{
+	// 2 instruction 消費して 16bit 整数として読み取る
+	vm.ip += 2;
+	return static_cast<uint16_t>(vm.ip[-2] << 8 | vm.ip[-1]);
+}
+
 Value read_constant()
 {
 	return (vm.chunk->constants.values[read_byte()]);
@@ -238,6 +245,12 @@ InterpretResult run()
 			// stack トップに expression の評価結果が置かれているはず
 			printValue(pop());
 			printf("\n");
+			break;
+		}
+
+		case OP_JUMP_IF_FALSE: {
+			uint16_t offset = read_short();
+			if (isFalsey(peek(0))) vm.ip += offset; // then 節をスキップ
 			break;
 		}
 

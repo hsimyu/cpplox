@@ -1,0 +1,8 @@
+var result = 0;
+
+while (result < 10)
+{
+    result = result + 1;
+}
+
+print result == 10;

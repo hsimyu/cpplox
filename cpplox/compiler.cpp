@@ -154,6 +154,22 @@ void emitBytes(uint8_t byte1, uint8_t byte2)
 	emitByte(byte2);
 }
 
+void emitLoop(int loopStart)
+{
+	emitByte(OP_LOOP);
+
+	// OP_LOOP は 3 要素の命令なので currentChunk + 2 から、loopStart を引いただけをオフセットとして格納する
+	// 実行時にこのオフセットの分だけ後ろに戻る
+	int offset = currentChunk()->count - loopStart + 2;
+	if (offset > UINT16_MAX)
+	{
+		error("Loop body too large.");
+	}
+
+	emitByte((offset >> 8) & 0xFF);
+	emitByte(offset & 0xFF);
+}
+
 int emitJump(uint8_t instruction)
 {
 	emitByte(instruction);
@@ -665,6 +681,25 @@ void printStatement()
 	emitByte(OP_PRINT);
 }
 
+void whileStatement()
+{
+	int loopStart = currentChunk()->count;
+
+	// whileStmt := "while" "(" expression ")" statement;
+	consume(TOKEN_LEFT_PAREN, "Expect '(' after 'while'.");
+	expression();
+	consume(TOKEN_RIGHT_PAREN, "Expect '(' after condition.");
+
+	// condition が Falsey なら statement 実行完了箇所までジャンプ
+	int exitJump = emitJump(OP_JUMP_IF_FALSE);
+	emitByte(OP_POP);
+	statement();
+	emitLoop(loopStart);
+
+	patchJump(exitJump);
+	emitByte(OP_POP);
+}
+
 void synchronize()
 {
 	parser.panicMode = false;
@@ -717,6 +752,10 @@ void statement()
 	else if (match(TOKEN_IF))
 	{
 		ifStatement();
+	}
+	else if (match(TOKEN_WHILE))
+	{
+		whileStatement();
 	}
 	else if (match(TOKEN_LEFT_BRACE))
 	{

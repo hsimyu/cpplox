@@ -239,6 +239,8 @@ void endScope()
 	}
 }
 
+void and_();
+void or_();
 void number();
 void str();
 void variable();
@@ -274,7 +276,7 @@ ParseRule rules[] = {
 	/* TOKEN_IDENTIFIER    */ {variable, nullptr, PREC_NONE},
 	/* TOKEN_STRING        */ {str, nullptr, PREC_NONE},
 	/* TOKEN_NUMBER        */ {number, nullptr, PREC_NONE},
-	/* TOKEN_AND           */ {nullptr, nullptr, PREC_NONE},
+	/* TOKEN_AND           */ {nullptr, and_, PREC_AND},
 	/* TOKEN_CLASS         */ {nullptr, nullptr, PREC_NONE},
 	/* TOKEN_ELSE          */ {nullptr, nullptr, PREC_NONE},
 	/* TOKEN_FALSE         */ {literal, nullptr, PREC_NONE},
@@ -282,7 +284,7 @@ ParseRule rules[] = {
 	/* TOKEN_FUN           */ {nullptr, nullptr, PREC_NONE},
 	/* TOKEN_IF            */ {nullptr, nullptr, PREC_NONE},
 	/* TOKEN_NIL           */ {literal, nullptr, PREC_NONE},
-	/* TOKEN_OR            */ {nullptr, nullptr, PREC_NONE},
+	/* TOKEN_OR            */ {nullptr, or_, PREC_OR},
 	/* TOKEN_PRINT         */ {nullptr, nullptr, PREC_NONE},
 	/* TOKEN_RETURN        */ {nullptr, nullptr, PREC_NONE},
 	/* TOKEN_SUPER         */ {nullptr, nullptr, PREC_NONE},
@@ -433,6 +435,29 @@ void defineVariable(uint8_t global)
 		return;
 	}
 	emitBytes(OP_DEFINE_GLOBAL, global);
+}
+
+void and_()
+{
+	// and 命令は "Falsey なら and 命令より優先順位が低い命令の実行完了までジャンプ" と解釈される
+	int endJump = emitJump(OP_JUMP_IF_FALSE);
+	// POP は Jump 対象に含まれるので、Jump した場合は値を捨てず、それが式の評価値になる
+	emitByte(OP_POP);
+	parsePrecedence(PREC_AND);
+	patchJump(endJump);
+}
+
+void or_()
+{
+	// or 命令は "Falsey なら OP_JUMP をスキップし、次の式を実行する。Truthy なら OP_JUMP が実行され、式全体をスキップする" と解釈される
+	// NOTE: 性能を追い求めるなら新規命令を実装して、発行する命令数を減らした方がいい
+	int elseJump = emitJump(OP_JUMP_IF_FALSE);
+	int endJump = emitJump(OP_JUMP);
+	patchJump(elseJump);
+	emitByte(OP_POP);
+
+	parsePrecedence(PREC_OR);
+	patchJump(endJump);
 }
 
 void number()

@@ -1,0 +1,14 @@
+var cond = 2;
+var cond2 = 10;
+var result = 0;
+
+if (cond == 2 and cond2 == 10) {
+    result = result + 1;
+}
+
+if (cond == 2 or cond2 != 100) {
+    result = result + 1;
+}
+
+result = (result == 2) and (cond2 == 10);
+print result;

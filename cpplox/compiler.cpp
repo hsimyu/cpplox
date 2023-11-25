@@ -610,15 +610,26 @@ void expressionStatement()
 
 void ifStatement()
 {
-	// ifStmt := "if" "(" expression ")" statement
+	// ifStmt := "if" "(" expression ")" statement ("else" statement)*
 	consume(TOKEN_LEFT_PAREN, "Expect '(' after 'if'.");
 	expression();
 	consume(TOKEN_RIGHT_PAREN, "Expect ')' after condition.");
 
 	int thenJmp = emitJump(OP_JUMP_IF_FALSE);
+	emitByte(OP_POP); // clean stack before then statement
 	statement();
 
+	int elseJump = emitJump(OP_JUMP);
+
 	patchJump(thenJmp);
+	emitByte(OP_POP); // clean stack before else statement
+
+	if (match(TOKEN_ELSE))
+	{
+		statement();
+	}
+
+	patchJump(elseJump);
 }
 
 void printStatement()

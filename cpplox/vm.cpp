@@ -248,7 +248,15 @@ InterpretResult run()
 			break;
 		}
 
+		case OP_JUMP: {
+			// 無条件 jump
+			uint16_t offset = read_short();
+			vm.ip += offset;
+			break;
+		}
+
 		case OP_JUMP_IF_FALSE: {
+			// false なら jump
 			uint16_t offset = read_short();
 			if (isFalsey(peek(0))) vm.ip += offset; // then 節をスキップ
 			break;

@@ -1,0 +1,14 @@
+var cond = 2;
+var result = 1;
+
+if (cond == 42) {
+    print "cond is 42!";
+    result = 1;
+}
+else
+{
+    print "cond is no 42!";
+    result = 0;
+}
+
+print result;

@@ -48,6 +48,20 @@ uint32_t hashString(const char* key, int length)
 	return hash;
 }
 
+void printFunction(ObjFunction* function)
+{
+	printf("<fn %s>", function->name->chars);
+}
+
+}
+
+ObjFunction* newFunction()
+{
+	ObjFunction* f = allocateObject<ObjFunction>(ObjType::Function);
+	f->arity = 0;
+	f->name = nullptr;
+	f->chunk.Init();
+	return f;
 }
 
 ObjString* takeString(char* chars, int length)
@@ -86,6 +100,14 @@ void freeObject(Obj* obj)
 	{
 
 	using enum ObjType;
+
+	case Function:
+	{
+		ObjFunction* f = reinterpret_cast<ObjFunction*>(obj);
+		f->chunk.Free();
+		free(f);
+		break;
+	}
 	case String:
 	{
 		ObjString* s = reinterpret_cast<ObjString*>(obj);
@@ -102,6 +124,9 @@ void printObject(Value value)
 	switch (OBJ_TYPE(value))
 	{
 	using enum ObjType;
+	case Function:
+		printFunction(AS_FUNCTION(value));
+		break;
 	case String:
 		printf("%s", AS_CSTRING(value));
 		break;

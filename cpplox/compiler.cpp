@@ -462,6 +462,7 @@ uint8_t parseVariable(const char* errorMessage)
 
 void markInitialized()
 {
+	if (current->scopeDepth = 0) return;
 	current->locals[current->localCount - 1].depth = current->scopeDepth;
 }
 
@@ -645,6 +646,35 @@ void block()
 	consume(TOKEN_RIGHT_BRACE, "Expect '}' after block.");
 }
 
+void function(FunctionType type)
+{
+	Compiler compiler;
+	initCompiler(&compiler, type);
+	beginScope();
+
+	consume(TOKEN_LEFT_PAREN, "Expect '(' after function name.");
+	consume(TOKEN_RIGHT_PAREN, "Expect ')' after parameters.");
+	consume(TOKEN_LEFT_BRACE, "Expect '{' before function body.");
+
+	block();
+
+	// NOTE: 関数が終わるとコンパイラが終了するので endScope() は不要
+	ObjFunction* f = endCompiler();
+	emitBytes(OP_CONSTANT, makeConstant(Value::toObj(f)));
+}
+
+void funDeclaration()
+{
+	// funDecl := "fun" "(" ")" block
+
+	// 関数名も変数としてパースする
+	// 未初期化変数としてマークしておくことで、本文内で参照可能にする
+	uint8_t global = parseVariable("Expect function name.");
+	markInitialized();
+	function(FunctionType::Function);
+	defineVariable(global);
+}
+
 void varDeclaration()
 {
 	uint8_t global = parseVariable("Expect variable name.");
@@ -814,8 +844,12 @@ void synchronize()
 
 void declaration()
 {
-	// declaration := varDecl | statement
-	if (match(TOKEN_VAR))
+	// declaration := funDecl | varDecl | statement
+	if (match(TOKEN_FUN))
+	{
+		funDeclaration();
+	}
+	else if (match(TOKEN_VAR))
 	{
 		varDeclaration();
 	}

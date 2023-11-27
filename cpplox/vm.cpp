@@ -18,28 +18,6 @@ VM vm; // global vm instance
 namespace
 {
 
-uint8_t read_byte()
-{
-	return *vm.ip++;
-}
-
-uint16_t read_short()
-{
-	// 2 instruction 消費して 16bit 整数として読み取る
-	vm.ip += 2;
-	return static_cast<uint16_t>(vm.ip[-2] << 8 | vm.ip[-1]);
-}
-
-Value read_constant()
-{
-	return (vm.chunk->constants.values[read_byte()]);
-}
-
-ObjString* read_string()
-{
-	return AS_STRING(read_constant());
-}
-
 Value peek(int distance)
 {
 	return vm.stackTop[-1 - distance];
@@ -48,6 +26,7 @@ Value peek(int distance)
 void resetStack()
 {
 	vm.stackTop = vm.stack;
+	vm.frameCount = 0;
 }
 
 void runtimeError(const char* format, ...)
@@ -59,9 +38,11 @@ void runtimeError(const char* format, ...)
 
 	fputs("\n", stderr);
 
+	CallFrame* frame = &vm.frames[vm.frameCount - 1];
+
 	// コードを読んだあとに ip++ されているので、エラーを起こしたのは現在実行しているコードの一つ前になる
-	size_t instruction = vm.ip - vm.chunk->code - 1;
-	int line = vm.chunk->lines[instruction];
+	size_t instruction = frame->ip - frame->function->chunk.code - 1;
+	int line = frame->function->chunk.lines[instruction];
 	fprintf(stderr, "[line %d] in script\n", line);
 
 	resetStack();
@@ -104,6 +85,21 @@ void concatenate()
 
 InterpretResult run()
 {
+	CallFrame* frame = &vm.frames[vm.frameCount - 1];
+
+#define READ_BYTE() (*frame->ip++)
+
+// 2 instruction 消費して 16bit 整数として読み取る
+#define READ_SHORT() \
+	(frame->ip += 2, \
+	static_cast<uint16_t>(frame->ip[-2] << 8 | frame->ip[-1]))
+
+#define READ_CONSTANT() \
+	(frame->function->chunk.constants.values[READ_BYTE()])
+
+#define READ_STRING() \
+	AS_STRING(READ_CONSTANT())
+
 	for (;;)
 	{
 #if DEBUG_TRACE_EXECUTION
@@ -115,16 +111,16 @@ InterpretResult run()
 			printf(" ]");
 		}
 		printf("\n");
-		disassembleInstruction(vm.chunk, static_cast<int>(vm.ip - vm.chunk->code));
+		disassembleInstruction(&frame->function->chunk, static_cast<int>(frame->ip - frame->function->chunk.code));
 #endif
 
 		using enum InterpretResult;
-		uint8_t instruction = read_byte();
+		uint8_t instruction = READ_BYTE();
 		switch (instruction)
 		{
 
 		case OP_CONSTANT: {
-			Value constant = read_constant();
+			Value constant = READ_CONSTANT();
 			push(constant);
 			break;
 		}
@@ -148,22 +144,22 @@ InterpretResult run()
 		case OP_GET_LOCAL:
 		{
 			// ローカル変数のインデックスはスタックのインデックスと一致している
-			uint8_t slot = read_byte();
-			push(vm.stack[slot]);
+			uint8_t slot = READ_BYTE();
+			push(frame->slots[slot]);
 			break;
 		}
 
 		case OP_SET_LOCAL:
 		{
 			// ローカル変数のインデックスはスタックのインデックスと一致している
-			uint8_t slot = read_byte();
-			vm.stack[slot] = peek(0); // 値がそのまま代入文の評価値になるので、pop() しない
+			uint8_t slot = READ_BYTE();
+			frame->slots[slot] = peek(0); // 値がそのまま代入文の評価値になるので、pop() しない
 			break;
 		}
 
 		case OP_GET_GLOBAL:
 		{
-			ObjString* name = read_string();
+			ObjString* name = READ_STRING();
 			Value value;
 			if (!tableGet(&vm.globals, name, &value)) {
 				runtimeError("Undefined variable '%s'.", name->chars);
@@ -175,7 +171,7 @@ InterpretResult run()
 
 		case OP_DEFINE_GLOBAL:
 		{
-			ObjString* name = read_string();
+			ObjString* name = READ_STRING();
 			tableSet(&vm.globals, name, peek(0));
 			pop();
 			break;
@@ -183,7 +179,7 @@ InterpretResult run()
 
 		case OP_SET_GLOBAL:
 		{
-			ObjString* name = read_string();
+			ObjString* name = READ_STRING();
 			if (tableSet(&vm.globals, name, peek(0)))
 			{
 				// "新しいキーだったら" ランタイムエラーにする
@@ -250,21 +246,21 @@ InterpretResult run()
 
 		case OP_JUMP: {
 			// 無条件 jump
-			uint16_t offset = read_short();
-			vm.ip += offset;
+			uint16_t offset = READ_SHORT();
+			frame->ip += offset;
 			break;
 		}
 
 		case OP_JUMP_IF_FALSE: {
 			// false なら jump
-			uint16_t offset = read_short();
-			if (isFalsey(peek(0))) vm.ip += offset; // then 節をスキップ
+			uint16_t offset = READ_SHORT();
+			if (isFalsey(peek(0))) frame->ip += offset; // then 節をスキップ
 			break;
 		}
 
 		case OP_LOOP: {
-			uint16_t offset = read_short();
-			vm.ip -= offset; // back jump
+			uint16_t offset = READ_SHORT();
+			frame->ip -= offset; // back jump
 			break;
 		}
 
@@ -277,6 +273,12 @@ InterpretResult run()
 
 		}
 	}
+
+#undef READ_STRING
+#undef READ_CONSTANT
+#undef READ_SHORT
+#undef READ_BYTE
+
 }
 
 #undef BINARY_OP
@@ -314,29 +316,21 @@ VM* getVM()
 	return &vm;
 }
 
-InterpretResult interpret(Chunk* chunk)
-{
-	vm.chunk = chunk;
-	vm.ip = vm.chunk->code;
-	return run();
-}
-
 InterpretResult interpret(const char* source)
 {
-	Chunk chunk{};
+	ObjFunction* function = compile(source);
+	if (function == nullptr) return InterpretResult::CompileError;
 
-	if (!compile(source, &chunk))
-	{
-		chunk.Free();
-		return InterpretResult::CompileError;
-	}
+	// 確保済みのスタック 0 番に関数オブジェクト自身を格納する
+	push(Value::toObj(function));
 
-	vm.chunk = &chunk;
-	vm.ip = vm.chunk->code;
+	// 新しいフレームとして VM に登録
+	CallFrame* frame = &vm.frames[vm.frameCount++];
+	frame->function = function;
+	frame->ip = function->chunk.code;
+	frame->slots = vm.stack;
 
-	auto result = run();
-	chunk.Free();
-	return result;
+	return run();
 }
 
 void push(Value value)

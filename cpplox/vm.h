@@ -4,14 +4,25 @@
 #include "value.h"
 #include "table.h"
 
+constexpr size_t FRAMES_MAX = 64;
 constexpr size_t STACK_COUNT_MAX = 1024;
 
 struct Obj;
+struct ObjFunction;
+
+struct CallFrame
+{
+	ObjFunction* function = nullptr;
+	uint8_t* ip = nullptr;
+	Value* slots = nullptr;
+};
 
 struct VM
 {
-	Chunk* chunk = nullptr;
-	uint8_t* ip = nullptr;
+	// 関数スタック
+	CallFrame frames[FRAMES_MAX] = { };
+	int frameCount = 0;
+
 	Value stack[STACK_COUNT_MAX] = { };
 	Value* stackTop = nullptr;
 	Table globals;

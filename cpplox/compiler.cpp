@@ -68,7 +68,7 @@ enum class FunctionType
 struct Compiler
 {
 	ObjFunction* function = nullptr;
-	FunctionType type;
+	FunctionType type = FunctionType::Script;
 
 	Local locals[LOCAL_VARIABLE_COUNT];
 	int localCount = 0;

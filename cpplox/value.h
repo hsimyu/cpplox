@@ -1,6 +1,7 @@
 ﻿#pragma once
 
 struct Obj;
+struct ObjFunction;
 struct ObjString;
 
 enum class ValueType
@@ -58,6 +59,14 @@ struct Value
 		return {
 			.type = ValueType::Obj,
 			.as = { .obj = obj },
+		};
+	}
+
+	static Value toObj(ObjFunction* obj)
+	{
+		return {
+			.type = ValueType::Obj,
+			.as = { .obj = reinterpret_cast<Obj*>(obj) },
 		};
 	}
 

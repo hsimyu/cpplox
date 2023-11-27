@@ -1,5 +1,5 @@
 ﻿#pragma once
 
-struct Chunk;
+struct ObjFunction;
 
-bool compile(const char* source, Chunk* chunk);
+ObjFunction* compile(const char* source);

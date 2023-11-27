@@ -59,8 +59,17 @@ struct Local
 	int depth = 0;
 };
 
+enum class FunctionType
+{
+	Function,
+	Script,
+};
+
 struct Compiler
 {
+	ObjFunction* function = nullptr;
+	FunctionType type;
+
 	Local locals[LOCAL_VARIABLE_COUNT];
 	int localCount = 0;
 	int scopeDepth = 0;
@@ -68,11 +77,10 @@ struct Compiler
 
 Parser parser;
 Compiler* current = nullptr;
-Chunk* compilingChunk = nullptr;
 
 Chunk* currentChunk()
 {
-	return compilingChunk;
+	return &current->function->chunk;
 }
 
 void errorAt(Token* token, const char* message)
@@ -219,23 +227,37 @@ void emitReturn()
 	emitByte(OP_RETURN);
 }
 
-void initCompiler(Compiler* compiler)
+void initCompiler(Compiler* compiler, FunctionType type)
 {
+	compiler->function = nullptr;
+	compiler->type = type;
 	compiler->localCount = 0;
 	compiler->scopeDepth = 0;
+
+	// コンパイル対象となる関数オブジェクトをコンパイル時に生成する
+	compiler->function = newFunction();
 	current = compiler;
+
+	// 0 番目のローカル変数を VM 用に予約
+	Local* local = &current->locals[current->localCount++];
+	local->depth = 0;
+	local->name.start = "";
+	local->name.length = 0;
 }
 
-void endCompiler()
+ObjFunction* endCompiler()
 {
 	emitReturn();
+	ObjFunction* f = current->function;
 
 #if DEBUG_PRINT_CODE
 	if (!parser.hadError)
 	{
-		disassembleChunk(currentChunk(), "code");
+		disassembleChunk(currentChunk(), f->name != nullptr ? f->name->chars : "<script>");
 	}
 #endif
+
+	return f;
 }
 
 void beginScope()
@@ -844,14 +866,12 @@ void grouping()
 
 }
 
-bool compile(const char* source, Chunk* chunk)
+ObjFunction* compile(const char* source)
 {
 	initScanner(source);
 
 	Compiler compiler;
-	initCompiler(&compiler);
-
-	compilingChunk = chunk;
+	initCompiler(&compiler, FunctionType::Script);
 
 	advance();
 
@@ -860,6 +880,6 @@ bool compile(const char* source, Chunk* chunk)
 		declaration();
 	}
 
-	endCompiler();
-	return !parser.hadError;
+	auto f = endCompiler();
+	return parser.hadError ? nullptr : f;
 }

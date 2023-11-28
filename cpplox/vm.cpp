@@ -163,6 +163,10 @@ InterpretResult run()
 #define READ_STRING() \
 	AS_STRING(READ_CONSTANT())
 
+#if DEBUG_TRACE_EXECUTION
+	printf("== run() ==\n");
+#endif
+
 	for (;;)
 	{
 #if DEBUG_TRACE_EXECUTION

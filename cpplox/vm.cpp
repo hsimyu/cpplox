@@ -12,8 +12,19 @@
 #include <cstdio>
 #include <cstdarg>
 #include <cstring>
+#include <ctime>
 
 VM vm; // global vm instance
+
+namespace
+{
+
+Value clockNative(int argCount, Value* args)
+{
+	return Value::toNumber(static_cast<double>(clock()) / CLOCKS_PER_SEC);
+}
+
+}
 
 namespace
 {
@@ -417,6 +428,8 @@ void initVM()
 	vm.objects = nullptr;
 	initTable(&vm.globals);
 	initTable(&vm.strings);
+
+	defineNative("clock", clockNative);
 }
 
 void freeVM()

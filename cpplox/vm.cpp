@@ -23,6 +23,36 @@ Value peek(int distance)
 	return vm.stackTop[-1 - distance];
 }
 
+bool call(ObjFunction* function, int argCount)
+{
+	CallFrame* frame = &vm.frames[vm.frameCount++];
+	frame->function = function;
+	frame->ip = function->chunk.code;
+
+	// stack 中に乗っている引数の数を引いた位置が、frame が参照するスタックの開始位置になる
+	// argCount + 1 なのは、予約分の 0 番の分
+	frame->slots = vm.stackTop - (argCount + 1);
+
+	return true;
+}
+
+bool callValue(Value callee, int argCount)
+{
+	if (IS_OBJ(callee))
+	{
+		switch (OBJ_TYPE(callee))
+		{
+		case ObjType::Function:
+			return call(AS_FUNCTION(callee), argCount);
+		default:
+			// Not Callable Object
+			break;
+		}
+	}
+	runtimeError("Can only call functions and classes.");
+	return false;
+}
+
 void resetStack()
 {
 	vm.stackTop = vm.stack;
@@ -264,6 +294,17 @@ InterpretResult run()
 			break;
 		}
 
+		case OP_CALL: {
+			int argCount = READ_BYTE();
+			if (!callValue(peek(argCount), argCount))
+			{
+				return RuntimeError;
+			}
+			// 呼び出しが成功したので呼び出し元を frame 変数にキャッシュしておく
+			frame = &vm.frames[vm.frameCount - 1];
+			break;
+		}
+
 		case OP_RETURN: {
 			return Ok;
 		}
@@ -324,11 +365,8 @@ InterpretResult interpret(const char* source)
 	// 確保済みのスタック 0 番に関数オブジェクト自身を格納する
 	push(Value::toObj(function));
 
-	// 新しいフレームとして VM に登録
-	CallFrame* frame = &vm.frames[vm.frameCount++];
-	frame->function = function;
-	frame->ip = function->chunk.code;
-	frame->slots = vm.stack;
+	// 新しいフレームとして関数呼び出し
+	call(function, 0);
 
 	return run();
 }

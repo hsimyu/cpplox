@@ -846,6 +846,25 @@ void printStatement()
 	emitByte(OP_PRINT);
 }
 
+void returnStatement()
+{
+	if (current->type == FunctionType::Script)
+	{
+		error("Can't return from top-level code.");
+	}
+	// returnStmt := "return" (expression)* ";" ;
+	if (match(TOKEN_SEMICOLON))
+	{
+		emitReturn();
+	}
+	else
+	{
+		expression();
+		consume(TOKEN_SEMICOLON, "Expect ';' after return value.");
+		emitByte(OP_RETURN);
+	}
+}
+
 void whileStatement()
 {
 	int loopStart = currentChunk()->count;
@@ -925,6 +944,10 @@ void statement()
 	else if (match(TOKEN_IF))
 	{
 		ifStatement();
+	}
+	else if (match(TOKEN_RETURN))
+	{
+		returnStatement();
 	}
 	else if (match(TOKEN_WHILE))
 	{

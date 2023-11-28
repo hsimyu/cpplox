@@ -1,12 +1,18 @@
 import subprocess
 import os
+import sys
+import fnmatch
 
-def run():
+def run(pattern=None):
     binary_path = "./x64/Debug/cpplox.exe"
 
     # testsディレクトリ内の.loxファイルのパスを取得
     tests_directory = './tests'
     lox_files = [file for file in os.listdir(tests_directory) if file.endswith('.lox')]
+
+    if pattern:
+        lox_files = fnmatch.filter(lox_files, f"*{pattern}*")
+
     lox_files.sort()  # ファイルをソート
 
     test_succeed = True
@@ -51,4 +57,7 @@ def run():
         exit(1)
 
 if __name__ == "__main__":
-    run()
+    pattern_arg = None
+    if len(sys.argv) > 1:
+        pattern_arg = sys.argv[1]
+    run(pattern_arg)

@@ -67,6 +67,7 @@ enum class FunctionType
 
 struct Compiler
 {
+	Compiler* enclosing = nullptr;
 	ObjFunction* function = nullptr;
 	FunctionType type = FunctionType::Script;
 
@@ -229,6 +230,7 @@ void emitReturn()
 
 void initCompiler(Compiler* compiler, FunctionType type)
 {
+	compiler->enclosing = current;
 	compiler->function = nullptr;
 	compiler->type = type;
 	compiler->localCount = 0;
@@ -257,6 +259,7 @@ ObjFunction* endCompiler()
 	}
 #endif
 
+	current = current->enclosing;
 	return f;
 }
 

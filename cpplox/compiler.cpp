@@ -225,6 +225,7 @@ void emitConstant(Value value)
 
 void emitReturn()
 {
+	emitByte(OP_NIL); // 引数なしの return の場合は nil を返す
 	emitByte(OP_RETURN);
 }
 

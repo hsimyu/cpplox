@@ -339,7 +339,20 @@ InterpretResult run()
 		}
 
 		case OP_RETURN: {
-			return Ok;
+			Value result = pop();
+			vm.frameCount--;
+			if (vm.frameCount == 0)
+			{
+				// 実行終了
+				pop();
+				return Ok;
+			}
+
+			vm.stackTop = frame->slots; // スタックを復元
+			push(result);
+			frame = &vm.frames[vm.frameCount - 1]; // 呼び出し元フレームを一つ上に
+			// frame が書き換わることで、関数呼び出し位置の ip から実行が再開する
+			break;
 		}
 
 		default:

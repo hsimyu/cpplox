@@ -2,6 +2,7 @@
 
 struct Obj;
 struct ObjFunction;
+struct ObjNative;
 struct ObjString;
 
 enum class ValueType
@@ -63,6 +64,14 @@ struct Value
 	}
 
 	static Value toObj(ObjFunction* obj)
+	{
+		return {
+			.type = ValueType::Obj,
+			.as = { .obj = reinterpret_cast<Obj*>(obj) },
+		};
+	}
+
+	static Value toObj(ObjNative* obj)
 	{
 		return {
 			.type = ValueType::Obj,

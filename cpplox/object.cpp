@@ -69,6 +69,13 @@ ObjFunction* newFunction()
 	return f;
 }
 
+ObjNative* newNative(NativeFn function)
+{
+	ObjNative* native = allocateObject<ObjNative>(ObjType::Native);
+	native->function = function;
+	return native;
+}
+
 ObjString* takeString(char* chars, int length)
 {
 	auto hash = hashString(chars, length);
@@ -113,6 +120,12 @@ void freeObject(Obj* obj)
 		free(f);
 		break;
 	}
+	case Native:
+	{
+		ObjNative* f = reinterpret_cast<ObjNative*>(obj);
+		free(f);
+		break;
+	}
 	case String:
 	{
 		ObjString* s = reinterpret_cast<ObjString*>(obj);
@@ -131,6 +144,9 @@ void printObject(Value value)
 	using enum ObjType;
 	case Function:
 		printFunction(AS_FUNCTION(value));
+		break;
+	case Native:
+		printf("<native fn>");
 		break;
 	case String:
 		printf("%s", AS_CSTRING(value));

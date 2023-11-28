@@ -58,6 +58,15 @@ bool callValue(Value callee, int argCount)
 		{
 		case ObjType::Function:
 			return call(AS_FUNCTION(callee), argCount);
+		case ObjType::Native:
+		{
+			// Native 関数呼び出しの場合は、ここで即座に呼び出す
+			NativeFn native = AS_NATIVE(callee)->function;
+			Value result = native(argCount, vm.stackTop - argCount);
+			vm.stackTop -= argCount + 1;
+			push(result);
+			return true;
+		}
 		default:
 			// Not Callable Object
 			break;
@@ -109,6 +118,20 @@ void runtimeError(const char* format, ...)
 	fprintf(stderr, "[line %d] in script\n", line);
 
 	resetStack();
+}
+
+void defineNative(const char* name, NativeFn function)
+{
+	// 割当てたオブジェクトが即座に GC の対象になったりしないように、スタックに入れておく
+	push(Value::toObj(copyString(name, static_cast<int>(strlen(name)))));
+	push(Value::toObj(newNative(function)));
+
+	// ネイティブ関数は global に入れる
+	// TODO: ここでスタックは空になっている前提で合っている？
+	tableSet(&vm.globals, AS_STRING(vm.stack[0]), vm.stack[1]);
+
+	pop();
+	pop();
 }
 
 #define BINARY_OP(ValueType, op) \
@@ -338,6 +361,7 @@ InterpretResult run()
 				return RuntimeError;
 			}
 			// 呼び出しが成功したので呼び出し元を frame 変数にキャッシュしておく
+			// NOTE: Native 関数の場合、frame の指し位置は変わらない
 			frame = &vm.frames[vm.frameCount - 1];
 			break;
 		}

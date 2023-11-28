@@ -18,6 +18,8 @@ VM vm; // global vm instance
 namespace
 {
 
+void runtimeError(const char* format, ...);
+
 Value peek(int distance)
 {
 	return vm.stackTop[-1 - distance];
@@ -25,6 +27,18 @@ Value peek(int distance)
 
 bool call(ObjFunction* function, int argCount)
 {
+	if (argCount != function->arity)
+	{
+		runtimeError("Expected %d arguments but got %d.", function->arity, argCount);
+		return false;
+	}
+
+	if (vm.frameCount == FRAMES_MAX)
+	{
+		runtimeError("Stack overflow.");
+		return false;
+	}
+
 	CallFrame* frame = &vm.frames[vm.frameCount++];
 	frame->function = function;
 	frame->ip = function->chunk.code;

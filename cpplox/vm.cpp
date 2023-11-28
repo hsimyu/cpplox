@@ -82,6 +82,25 @@ void runtimeError(const char* format, ...)
 
 	fputs("\n", stderr);
 
+	// print stack trace
+	for (int i = vm.frameCount - 1; i >= 0; i--)
+	{
+		CallFrame* frame = &vm.frames[i];
+		ObjFunction* function = frame->function;
+
+		size_t instruction = frame->ip - function->chunk.code - 1;
+		fprintf(stderr, "[line %d] in ", function->chunk.lines[instruction]);
+
+		if (function->name == nullptr)
+		{
+			fprintf(stderr, "script\n");
+		}
+		else
+		{
+			fprintf(stderr, "%s()\n", function->name->chars);
+		}
+	}
+
 	CallFrame* frame = &vm.frames[vm.frameCount - 1];
 
 	// コードを読んだあとに ip++ されているので、エラーを起こしたのは現在実行しているコードの一つ前になる

@@ -8,11 +8,11 @@ constexpr size_t FRAMES_MAX = 64;
 constexpr size_t STACK_COUNT_MAX = 1024;
 
 struct Obj;
-struct ObjFunction;
+struct ObjClosure;
 
 struct CallFrame
 {
-	ObjFunction* function = nullptr;
+	ObjClosure* closure = nullptr;
 	uint8_t* ip = nullptr;
 	Value* slots = nullptr;
 };

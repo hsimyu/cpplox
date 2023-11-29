@@ -36,11 +36,11 @@ Value peek(int distance)
 	return vm.stackTop[-1 - distance];
 }
 
-bool call(ObjFunction* function, int argCount)
+bool call(ObjClosure* closure, int argCount)
 {
-	if (argCount != function->arity)
+	if (argCount != closure->function->arity)
 	{
-		runtimeError("Expected %d arguments but got %d.", function->arity, argCount);
+		runtimeError("Expected %d arguments but got %d.", closure->function->arity, argCount);
 		return false;
 	}
 
@@ -51,8 +51,8 @@ bool call(ObjFunction* function, int argCount)
 	}
 
 	CallFrame* frame = &vm.frames[vm.frameCount++];
-	frame->function = function;
-	frame->ip = function->chunk.code;
+	frame->closure = closure;
+	frame->ip = closure->function->chunk.code;
 
 	// stack 中に乗っている引数の数を引いた位置が、frame が参照するスタックの開始位置になる
 	// argCount + 1 なのは、予約分の 0 番の分
@@ -67,8 +67,9 @@ bool callValue(Value callee, int argCount)
 	{
 		switch (OBJ_TYPE(callee))
 		{
-		case ObjType::Function:
-			return call(AS_FUNCTION(callee), argCount);
+		// All ObjType::Function are wrapped as closure
+		case ObjType::Closure:
+			return call(AS_CLOSURE(callee), argCount);
 		case ObjType::Native:
 		{
 			// Native 関数呼び出しの場合は、ここで即座に呼び出す
@@ -106,7 +107,7 @@ void runtimeError(const char* format, ...)
 	for (int i = vm.frameCount - 1; i >= 0; i--)
 	{
 		CallFrame* frame = &vm.frames[i];
-		ObjFunction* function = frame->function;
+		ObjFunction* function = frame->closure->function;
 
 		size_t instruction = frame->ip - function->chunk.code - 1;
 		fprintf(stderr, "[line %d] in ", function->chunk.lines[instruction]);
@@ -124,8 +125,9 @@ void runtimeError(const char* format, ...)
 	CallFrame* frame = &vm.frames[vm.frameCount - 1];
 
 	// コードを読んだあとに ip++ されているので、エラーを起こしたのは現在実行しているコードの一つ前になる
-	size_t instruction = frame->ip - frame->function->chunk.code - 1;
-	int line = frame->function->chunk.lines[instruction];
+	ObjFunction* function = frame->closure->function;
+	size_t instruction = frame->ip - function->chunk.code - 1;
+	int line = function->chunk.lines[instruction];
 	fprintf(stderr, "[line %d] in script\n", line);
 
 	resetStack();
@@ -192,7 +194,7 @@ InterpretResult run()
 	static_cast<uint16_t>(frame->ip[-2] << 8 | frame->ip[-1]))
 
 #define READ_CONSTANT() \
-	(frame->function->chunk.constants.values[READ_BYTE()])
+	(frame->closure->function->chunk.constants.values[READ_BYTE()])
 
 #define READ_STRING() \
 	AS_STRING(READ_CONSTANT())
@@ -212,7 +214,7 @@ InterpretResult run()
 			printf(" ]");
 		}
 		printf("\n");
-		disassembleInstruction(&frame->function->chunk, static_cast<int>(frame->ip - frame->function->chunk.code));
+		disassembleInstruction(&frame->closure->function->chunk, static_cast<int>(frame->ip - frame->closure->function->chunk.code));
 #endif
 
 		using enum InterpretResult;
@@ -377,6 +379,13 @@ InterpretResult run()
 			break;
 		}
 
+		case OP_CLOSURE: {
+			ObjFunction* function = AS_FUNCTION(READ_CONSTANT());
+			ObjClosure* closure = newClosure(function);
+			push(Value::toObj(closure));
+			break;
+		}
+
 		case OP_RETURN: {
 			Value result = pop();
 			vm.frameCount--;
@@ -450,10 +459,14 @@ InterpretResult interpret(const char* source)
 	if (function == nullptr) return InterpretResult::CompileError;
 
 	// 確保済みのスタック 0 番に関数オブジェクト自身を格納する
+	// ここで push が必要なのは、ガベージコレクション回避のため
 	push(Value::toObj(function));
 
 	// 新しいフレームとして関数呼び出し
-	call(function, 0);
+	ObjClosure* closure = newClosure(function);
+	pop(); // 関数オブジェクトを取り出す
+	push(Value::toObj(closure));
+	call(closure, 0);
 
 	return run();
 }

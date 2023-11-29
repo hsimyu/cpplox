@@ -710,7 +710,7 @@ void function(FunctionType type)
 
 	// NOTE: 関数が終わるとコンパイラが終了するので endScope() は不要
 	ObjFunction* f = endCompiler();
-	emitBytes(OP_CONSTANT, makeConstant(Value::toObj(f)));
+	emitBytes(OP_CLOSURE, makeConstant(Value::toObj(f)));
 }
 
 void funDeclaration()

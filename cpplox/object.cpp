@@ -76,6 +76,13 @@ ObjNative* newNative(NativeFn function)
 	return native;
 }
 
+ObjClosure* newClosure(ObjFunction* function)
+{
+	ObjClosure* closure = allocateObject<ObjClosure>(ObjType::Closure);
+	closure->function = function;
+	return closure;
+}
+
 ObjString* takeString(char* chars, int length)
 {
 	auto hash = hashString(chars, length);
@@ -126,6 +133,12 @@ void freeObject(Obj* obj)
 		free(f);
 		break;
 	}
+	case Closure:
+	{
+		ObjClosure* f = reinterpret_cast<ObjClosure*>(obj);
+		free(f);
+		break;
+	}
 	case String:
 	{
 		ObjString* s = reinterpret_cast<ObjString*>(obj);
@@ -147,6 +160,9 @@ void printObject(Value value)
 		break;
 	case Native:
 		printf("<native fn>");
+		break;
+	case Closure:
+		printFunction(AS_CLOSURE(value)->function);
 		break;
 	case String:
 		printf("%s", AS_CSTRING(value));

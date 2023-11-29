@@ -13,6 +13,9 @@
 #define IS_NATIVE(value) isObjType(value, ObjType::Native)
 #define AS_NATIVE(value) (reinterpret_cast<ObjNative*>(AS_OBJ(value)))
 
+#define IS_CLOSURE(value) isObjType(value, ObjType::Closure)
+#define AS_CLOSURE(value) (reinterpret_cast<ObjClosure*>(AS_OBJ(value)))
+
 #define IS_STRING(value) isObjType(value, ObjType::String)
 #define AS_STRING(value) (reinterpret_cast<ObjString*>(AS_OBJ(value)))
 #define AS_CSTRING(value) (reinterpret_cast<ObjString*>(AS_OBJ(value))->chars)
@@ -21,6 +24,7 @@ enum class ObjType
 {
 	Function,
 	Native,
+	Closure,
 	String,
 };
 
@@ -38,6 +42,8 @@ struct ObjFunction
 	ObjString* name = nullptr;
 };
 
+ObjFunction* newFunction();
+
 using NativeFn = Value(*)(int argCount, Value* args);
 struct ObjNative
 {
@@ -45,8 +51,15 @@ struct ObjNative
 	NativeFn function = nullptr;
 };
 
-ObjFunction* newFunction();
 ObjNative* newNative(NativeFn function);
+
+struct ObjClosure
+{
+	Obj obj;
+	ObjFunction* function = nullptr;
+};
+
+ObjClosure* newClosure(ObjFunction* function);
 
 struct ObjString
 {
@@ -58,6 +71,7 @@ struct ObjString
 
 ObjString* takeString(char* chars, int length);
 ObjString* copyString(const char* chars, int length);
+
 void freeObject(Obj* obj);
 void printObject(Value value);
 

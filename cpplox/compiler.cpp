@@ -462,12 +462,22 @@ int resolveUpvalue(Compiler* compiler, Token* name)
 {
 	if (compiler->enclosing == nullptr) return -1;
 
-	// 上位のローカル関数として解決可能であれば上位値
+	// すぐ外側のローカル変数として解決可能であれば上位値である
 	// そのスコープにおけるインデックスを保存する
 	int local = resolveLocal(compiler->enclosing, name);
 	if (local != -1)
 	{
 		return addUpvalue(compiler, static_cast<uint8_t>(local), true);
+	}
+
+	// 外側の関数の上位値として解決できるかを再帰的に試みる
+	// 関数宣言のコンパイル時、その呼出し元は必ず生きているという構造を利用している
+	int upvalue = resolveUpvalue(compiler->enclosing, name);
+	if (upvalue != -1)
+	{
+		// 見つけられた場合は自身の上位値として追加
+		// ただし、直上のローカル変数ではない
+		return addUpvalue(compiler, static_cast<uint8_t>(local), false);
 	}
 
 	return -1;
@@ -764,7 +774,15 @@ void function(FunctionType type)
 
 	// NOTE: 関数が終わるとコンパイラが終了するので endScope() は不要
 	ObjFunction* f = endCompiler();
+
+	// クロージャと上位値のリストを吐き出す
+	// OP_CLOSURE のサイズは可変になる
 	emitBytes(OP_CLOSURE, makeConstant(Value::toObj(f)));
+	for (int i = 0; i < f->upvalueCount; i++)
+	{
+		emitByte(compiler.upvalues[i].isLocal ? 1 : 0);
+		emitByte(compiler.upvalues[i].index);
+	}
 }
 
 void funDeclaration()

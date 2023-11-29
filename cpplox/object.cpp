@@ -64,6 +64,7 @@ ObjFunction* newFunction()
 {
 	ObjFunction* f = allocateObject<ObjFunction>(ObjType::Function);
 	f->arity = 0;
+	f->upvalueCount = 0;
 	f->name = nullptr;
 	f->chunk.Init();
 	return f;

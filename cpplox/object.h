@@ -38,6 +38,7 @@ struct ObjFunction
 {
 	Obj obj;
 	int arity = 0;
+	int upvalueCount = 0;
 	Chunk chunk;
 	ObjString* name = nullptr;
 };

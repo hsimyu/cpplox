@@ -59,6 +59,12 @@ struct Local
 	int depth = 0;
 };
 
+struct Upvalue
+{
+	uint8_t index = 0;
+	bool isLocal = false;
+};
+
 enum class FunctionType
 {
 	Function,
@@ -73,6 +79,9 @@ struct Compiler
 
 	Local locals[LOCAL_VARIABLE_COUNT];
 	int localCount = 0;
+
+	Upvalue upvalues[UPVALUE_COUNT];
+
 	int scopeDepth = 0;
 };
 
@@ -424,6 +433,46 @@ int resolveLocal(Compiler* compiler, Token* name)
 	return -1;
 }
 
+int addUpvalue(Compiler* compiler, uint8_t index, bool isLocal)
+{
+	int upvalueCount = compiler->function->upvalueCount;
+
+	// すでに格納済みの上位値ならそのインデックスを返す
+	for (int i = 0; i < upvalueCount; i++)
+	{
+		Upvalue* upvalue = &compiler->upvalues[i];
+		if (upvalue->index == index && upvalue->isLocal == isLocal)
+		{
+			return i;
+		}
+	}
+
+	if (upvalueCount == UPVALUE_COUNT)
+	{
+		error("Too many closure variables in function.");
+		return 0;
+	}
+
+	compiler->upvalues[upvalueCount].isLocal = isLocal;
+	compiler->upvalues[upvalueCount].index = index;
+	return compiler->function->upvalueCount++;
+}
+
+int resolveUpvalue(Compiler* compiler, Token* name)
+{
+	if (compiler->enclosing == nullptr) return -1;
+
+	// 上位のローカル関数として解決可能であれば上位値
+	// そのスコープにおけるインデックスを保存する
+	int local = resolveLocal(compiler->enclosing, name);
+	if (local != -1)
+	{
+		return addUpvalue(compiler, static_cast<uint8_t>(local), true);
+	}
+
+	return -1;
+}
+
 void addLocal(Token name)
 {
 	if (current->localCount == LOCAL_VARIABLE_COUNT)
@@ -545,13 +594,18 @@ void str()
 void namedVariable(Token name)
 {
 	bool canAssign = parser.canAssign;
-	
+
 	uint8_t getOp, setOp;
 	int arg = resolveLocal(current, &name);
 	if (arg != -1)
 	{
 		getOp = OP_GET_LOCAL;
 		setOp = OP_SET_LOCAL;
+	}
+	else if ((arg = resolveUpvalue(current, &name)) != -1)
+	{
+		getOp = OP_GET_UPVALUE;
+		setOp = OP_SET_UPVALUE;
 	}
 	else
 	{

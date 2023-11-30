@@ -16,6 +16,9 @@
 #define IS_CLOSURE(value) isObjType(value, ObjType::Closure)
 #define AS_CLOSURE(value) (reinterpret_cast<ObjClosure*>(AS_OBJ(value)))
 
+#define IS_UPVALUE(value) isObjType(value, ObjType::Upvalue)
+#define AS_UPVALUE(value) (reinterpret_cast<ObjUpvalue*>(AS_OBJ(value)))
+
 #define IS_STRING(value) isObjType(value, ObjType::String)
 #define AS_STRING(value) (reinterpret_cast<ObjString*>(AS_OBJ(value)))
 #define AS_CSTRING(value) (reinterpret_cast<ObjString*>(AS_OBJ(value))->chars)
@@ -25,6 +28,7 @@ enum class ObjType
 	Function,
 	Native,
 	Closure,
+	Upvalue,
 	String,
 };
 
@@ -61,6 +65,14 @@ struct ObjClosure
 };
 
 ObjClosure* newClosure(ObjFunction* function);
+
+struct ObjUpvalue
+{
+	Obj obj;
+	Value* location = nullptr;
+};
+
+ObjUpvalue* newUpvalue(Value* slot);
 
 struct ObjString
 {

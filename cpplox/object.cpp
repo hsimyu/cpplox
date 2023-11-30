@@ -84,6 +84,13 @@ ObjClosure* newClosure(ObjFunction* function)
 	return closure;
 }
 
+ObjUpvalue* newUpvalue(Value* slot)
+{
+	ObjUpvalue* upvalue = allocateObject<ObjUpvalue>(ObjType::Upvalue);
+	upvalue->location = slot;
+	return upvalue;
+}
+
 ObjString* takeString(char* chars, int length)
 {
 	auto hash = hashString(chars, length);
@@ -140,6 +147,12 @@ void freeObject(Obj* obj)
 		free(f);
 		break;
 	}
+	case Upvalue:
+	{
+		ObjUpvalue* up = reinterpret_cast<ObjUpvalue*>(obj);
+		free(up);
+		break;
+	}
 	case String:
 	{
 		ObjString* s = reinterpret_cast<ObjString*>(obj);
@@ -164,6 +177,9 @@ void printObject(Value value)
 		break;
 	case Closure:
 		printFunction(AS_CLOSURE(value)->function);
+		break;
+	case Upvalue:
+		printf("upvalue");
 		break;
 	case String:
 		printf("%s", AS_CSTRING(value));

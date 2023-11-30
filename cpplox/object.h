@@ -62,6 +62,8 @@ struct ObjClosure
 {
 	Obj obj;
 	ObjFunction* function = nullptr;
+	ObjUpvalue** upvalues = nullptr; // Upvalue のポインタの配列
+	int upvalueCount = 0;
 };
 
 ObjClosure* newClosure(ObjFunction* function);

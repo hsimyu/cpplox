@@ -79,8 +79,17 @@ ObjNative* newNative(NativeFn function)
 
 ObjClosure* newClosure(ObjFunction* function)
 {
+	// [Upvalue のポインタ] の配列を管理するメモリを割り当て
+	ObjUpvalue** upvalues = allocate<ObjUpvalue*>(function->upvalueCount);
+	for (int i = 0; i < function->upvalueCount; i++)
+	{
+		upvalues[i] = nullptr;
+	}
+
 	ObjClosure* closure = allocateObject<ObjClosure>(ObjType::Closure);
 	closure->function = function;
+	closure->upvalues = upvalues;
+	closure->upvalueCount = function->upvalueCount;
 	return closure;
 }
 
@@ -144,6 +153,7 @@ void freeObject(Obj* obj)
 	case Closure:
 	{
 		ObjClosure* f = reinterpret_cast<ObjClosure*>(obj);
+		free_array(f->upvalues, f->upvalueCount);
 		free(f);
 		break;
 	}

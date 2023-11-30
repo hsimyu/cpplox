@@ -88,6 +88,12 @@ bool callValue(Value callee, int argCount)
 	return false;
 }
 
+ObjUpvalue* captureUpvalue(Value* local)
+{
+	ObjUpvalue* createdValue = newUpvalue(local);
+	return createdValue;
+}
+
 void resetStack()
 {
 	vm.stackTop = vm.stack;
@@ -293,6 +299,20 @@ InterpretResult run()
 			break;
 		}
 
+		case OP_GET_UPVALUE:
+		{
+			uint8_t slot = READ_BYTE();
+			push(*frame->closure->upvalues[slot]->location);
+			break;
+		}
+
+		case OP_SET_UPVALUE:
+		{
+			uint8_t slot = READ_BYTE();
+			*frame->closure->upvalues[slot]->location = peek(0);
+			break;
+		}
+
 		case OP_EQUAL:
 		{
 			Value b = pop();
@@ -383,6 +403,24 @@ InterpretResult run()
 			ObjFunction* function = AS_FUNCTION(READ_CONSTANT());
 			ObjClosure* closure = newClosure(function);
 			push(Value::toObj(closure));
+
+			// 上位値のポインタをオブジェクト配列として保持する
+			for (int i = 0; i < closure->upvalueCount; i++)
+			{
+				uint8_t isLocal = READ_BYTE();
+				uint8_t index = READ_BYTE();
+				if (isLocal)
+				{
+					// ローカルスコープの上位値の場合は、キャプチャする
+					// ローカル変数なので、フレームのスタック + index 分で Value* を取れる
+					closure->upvalues[i] = captureUpvalue(frame->slots + index);
+				}
+				else
+				{
+					// ローカルでない場合は外側の関数の上位値なので、そのポインタへの参照をコピーすればいい
+					closure->upvalues[i] = frame->closure->upvalues[index];
+				}
+			}
 			break;
 		}
 

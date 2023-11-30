@@ -57,6 +57,7 @@ struct Local
 {
 	Token name;
 	int depth = 0;
+	bool isCaptured = false;
 };
 
 struct Upvalue
@@ -259,6 +260,7 @@ void initCompiler(Compiler* compiler, FunctionType type)
 	// 0 番目のローカル変数を VM 用に予約
 	Local* local = &current->locals[current->localCount++];
 	local->depth = 0;
+	local->isCaptured = false;
 	local->name.start = "";
 	local->name.length = 0;
 }
@@ -291,7 +293,15 @@ void endScope()
 	// pop local variables on stack
 	while (current->localCount > 0 && current->locals[current->localCount - 1].depth > current->scopeDepth)
 	{
-		emitByte(OP_POP);
+		if (current->locals[current->localCount - 1].isCaptured)
+		{
+			// 上位値としてキャプチャ済みのローカル変数なら、POP ではなくクローズする
+			emitByte(OP_CLOSE_UPVALUE);
+		}
+		else
+		{
+			emitByte(OP_POP);
+		}
 		current->localCount--;
 	}
 }
@@ -467,6 +477,8 @@ int resolveUpvalue(Compiler* compiler, Token* name)
 	int local = resolveLocal(compiler->enclosing, name);
 	if (local != -1)
 	{
+		// キャプチャされたことをマークしておき、スタックから抜けるときに解放されないようにする
+		compiler->enclosing->locals[local].isCaptured = true;
 		return addUpvalue(compiler, static_cast<uint8_t>(local), true);
 	}
 
@@ -494,6 +506,7 @@ void addLocal(Token name)
 	Local* local = &current->locals[current->localCount++];
 	local->name = name;
 	local->depth = -1;
+	local->isCaptured = false;
 }
 
 void declareVariable()

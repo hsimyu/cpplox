@@ -125,6 +125,18 @@ ObjUpvalue* captureUpvalue(Value* local)
 	return createdValue;
 }
 
+void closeUpvalues(Value* last)
+{
+	// オープン上位値かつ現在のスコープ内のローカル変数であるものを辿る
+	while (vm.openUpvalues != nullptr && vm.openUpvalues->location >= last)
+	{
+		ObjUpvalue* upvalue = vm.openUpvalues;
+		upvalue->closed = *upvalue->location; // Value をコピー
+		upvalue->location = &upvalue->closed; // location がコピーした値を指すように変更
+		vm.openUpvalues = upvalue->next;
+	}
+}
+
 void resetStack()
 {
 	vm.stackTop = vm.stack;
@@ -456,8 +468,16 @@ InterpretResult run()
 			break;
 		}
 
+		case OP_CLOSE_UPVALUE:
+		{
+			closeUpvalues(vm.stackTop - 1);
+			pop();
+			break;
+		}
+
 		case OP_RETURN: {
 			Value result = pop();
+			closeUpvalues(frame->slots);
 			vm.frameCount--;
 			if (vm.frameCount == 0)
 			{

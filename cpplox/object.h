@@ -72,6 +72,7 @@ struct ObjUpvalue
 {
 	Obj obj;
 	Value* location = nullptr;
+	Value closed;
 	ObjUpvalue* next = nullptr; // for IntrusiveList
 };
 

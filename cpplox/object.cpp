@@ -97,6 +97,7 @@ ObjUpvalue* newUpvalue(Value* slot)
 {
 	ObjUpvalue* upvalue = allocateObject<ObjUpvalue>(ObjType::Upvalue);
 	upvalue->location = slot;
+	upvalue->closed = Value::toNil();
 	upvalue->next = nullptr;
 	return upvalue;
 }

@@ -90,7 +90,38 @@ bool callValue(Value callee, int argCount)
 
 ObjUpvalue* captureUpvalue(Value* local)
 {
+	ObjUpvalue* prevUpvalue = nullptr;
+	ObjUpvalue* upvalue = vm.openUpvalues;
+
+	// キャプチャしようとしているローカルより後方にいるオープン上位値があるかを探す
+	// 対象よりスタックの後方にいるオープン上位値を見つけた、
+	// もしくはオープンな上位値リストの末尾 (nullptr) に到達したら抜ける
+	while (upvalue != nullptr && upvalue->location > local)
+	{
+		prevUpvalue = upvalue;
+		upvalue = upvalue->next;
+	}
+
+	if (upvalue != nullptr && upvalue->location == local)
+	{
+		// 既存のオープン上位値としてキャプチャ済みだったのでそれを返す
+		return upvalue;
+	}
+
 	ObjUpvalue* createdValue = newUpvalue(local);
+	createdValue->next = upvalue; // 
+
+	if (prevUpvalue == nullptr)
+	{
+		// prev がない == 先頭の上位値
+		vm.openUpvalues = createdValue;
+	}
+	else
+	{
+		// LinkedList の末尾に繋げる
+		prevUpvalue->next = createdValue;
+	}
+
 	return createdValue;
 }
 
@@ -98,6 +129,7 @@ void resetStack()
 {
 	vm.stackTop = vm.stack;
 	vm.frameCount = 0;
+	vm.openUpvalues = nullptr;
 }
 
 void runtimeError(const char* format, ...)

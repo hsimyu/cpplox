@@ -9,6 +9,7 @@ constexpr size_t STACK_COUNT_MAX = 1024;
 
 struct Obj;
 struct ObjClosure;
+struct ObjUpvalue;
 
 struct CallFrame
 {
@@ -27,6 +28,7 @@ struct VM
 	Value* stackTop = nullptr;
 	Table globals;
 	Table strings;
+	ObjUpvalue* openUpvalues = nullptr;
 	Obj* objects = nullptr;
 };
 

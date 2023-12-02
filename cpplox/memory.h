@@ -31,3 +31,5 @@ void free_array(T* ptr, int oldCount)
 {
 	reallocate(ptr, sizeof(T) * oldCount, 0);
 }
+
+void collectGarbage();

@@ -9,6 +9,7 @@
 #endif
 
 #define DEBUG_STRESS_GC 1
+#define DEBUG_LOG_GC 1
 
 #define LOCAL_VARIABLE_COUNT (UINT8_MAX + 1)
 #define UPVALUE_COUNT (UINT8_MAX)

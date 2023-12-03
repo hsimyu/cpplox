@@ -3,6 +3,11 @@
 
 #include <stdlib.h>
 
+#if DEBUG_LOG_GC
+#include <cstdio>
+#include "debug.h"
+#endif
+
 void* reallocate(void* ptr, int oldSize, int newSize)
 {
 	if (newSize > oldSize)
@@ -24,4 +29,11 @@ void* reallocate(void* ptr, int oldSize, int newSize)
 
 void collectGarbage()
 {
+#if DEBUG_LOG_GC
+	printf("-- gc begin\n");
+#endif
+
+#if DEBUG_LOG_GC
+	printf("-- gc end\n");
+#endif
 }

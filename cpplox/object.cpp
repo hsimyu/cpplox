@@ -2,6 +2,7 @@
 
 #include "memory.h"
 #include "vm.h"
+#include "common.h"
 
 #include <cstring>
 #include <cstdio>
@@ -20,6 +21,10 @@ T* allocateObject(ObjType type)
 	auto vm = getVM();
 	o->next = vm->objects;
 	vm->objects = o;
+
+#if DEBUG_LOG_GC
+	printf("%p allocate %zu for %d\n", o, sizeof(T), type);
+#endif
 
 	return reinterpret_cast<T*>(o);
 }
@@ -134,6 +139,10 @@ ObjString* copyString(const char* chars, int length)
 
 void freeObject(Obj* obj)
 {
+#if DEBUG_LOG_GC
+	printf("%p free type %d\n", obj, obj->type);
+#endif
+
 	switch (obj->type)
 	{
 

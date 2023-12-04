@@ -4,6 +4,7 @@
 #include "chunk.h"
 #include "common.h"
 #include "object.h"
+#include "memory.h"
 
 #if DEBUG_PRINT_CODE
 #include "debug.h"
@@ -1074,4 +1075,15 @@ ObjFunction* compile(const char* source)
 
 	auto f = endCompiler();
 	return parser.hadError ? nullptr : f;
+}
+
+void markCompilerRoots()
+{
+	// 現在コンパイル中の関数とそれを包む上位関数オブジェクトをマーク
+	Compiler* compiler = current;
+	while (compiler != nullptr)
+	{
+		markObject(reinterpret_cast<Obj*>(compiler->function));
+		compiler = compiler->enclosing;
+	}
 }

@@ -1,6 +1,7 @@
 ﻿#include "memory.h"
 #include "common.h"
 #include "object.h"
+#include "compiler.h"
 
 #include <stdlib.h>
 
@@ -36,6 +37,7 @@ void markRoots()
 
 	// グローバル変数テーブルをマーク
 	markTable(&vm->globals);
+	markCompilerRoots();
 }
 
 }

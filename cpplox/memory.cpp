@@ -22,6 +22,18 @@ void markRoots()
 		markValue(*slot);
 	}
 
+	// 各コールフレームのクロージャをマーク
+	for (int i = 0; i < vm->frameCount; i++)
+	{
+		markObject(reinterpret_cast<Obj*>(vm->frames[i].closure));
+	}
+
+	// オープン上位値のリストをマーク
+	for (ObjUpvalue* upvalue = vm->openUpvalues; upvalue != nullptr; upvalue = upvalue->next)
+	{
+		markObject(reinterpret_cast<Obj*>(upvalue));
+	}
+
 	// グローバル変数テーブルをマーク
 	markTable(&vm->globals);
 }

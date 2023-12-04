@@ -95,6 +95,43 @@ void traceReferences()
 	}
 }
 
+void sweep()
+{
+	auto vm = getVM();
+	Obj* prev = nullptr;
+	Obj* obj = vm->objects;
+
+	// 全てのオブジェクトを辿り、マークされていない白色オブジェクトを解放する
+	while (obj != nullptr)
+	{
+		if (obj->isMarked)
+		{
+			obj->isMarked = false;
+			prev = obj;
+			obj = obj->next;
+		}
+		else
+		{
+			Obj* unreached = obj;
+			obj = obj->next;
+
+			// LinkedList の繋ぎ直し
+			if (prev != nullptr)
+			{
+				prev->next = obj;
+			}
+			else
+			{
+				// prev == nullptr なら、解放対象は先頭のオブジェクト
+				// -> 先頭を更新する
+				vm->objects = obj;
+			}
+
+			freeObject(unreached);
+		}
+	}
+}
+
 }
 
 void* reallocate(void* ptr, int oldSize, int newSize)
@@ -156,6 +193,7 @@ void collectGarbage()
 
 	markRoots();
 	traceReferences();
+	sweep();
 
 #if DEBUG_LOG_GC
 	printf("-- gc end\n");

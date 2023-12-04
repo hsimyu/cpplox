@@ -40,6 +40,61 @@ void markRoots()
 	markCompilerRoots();
 }
 
+void markArray(ValueArray* array)
+{
+	for (int i = 0; i < array->count; i++)
+	{
+		markValue(array->values[i]);
+	}
+}
+
+void blackenObject(Obj* obj)
+{
+#if DEBUG_LOG_GC
+	printf("%p blacken ", obj);
+	printValue(Value::toObj(obj));
+	printf("\n");
+#endif
+
+	switch (obj->type)
+	{
+	case ObjType::Closure:
+	{
+		ObjClosure* closure = reinterpret_cast<ObjClosure*>(obj);
+		markObject(reinterpret_cast<Obj*>(closure->function));
+		for (int i = 0; i < closure->upvalueCount; i++)
+		{
+			markObject(reinterpret_cast<Obj*>(closure->upvalues[i]));
+		}
+		break;
+	}
+	case ObjType::Function:
+	{
+		ObjFunction* f = reinterpret_cast<ObjFunction*>(obj);
+		markObject(reinterpret_cast<Obj*>(f->name));
+		markArray(&f->chunk.constants);
+		break;
+	}
+	case ObjType::Upvalue:
+		// クローズ上位値をマーク
+		markValue(reinterpret_cast<ObjUpvalue*>(obj)->closed);
+		break;
+	case ObjType::Native:
+	case ObjType::String:
+		break;
+	}
+}
+
+void traceReferences()
+{
+	auto vm = getVM();
+	while (vm->grayCount > 0)
+	{
+		Obj* obj = vm->grayStack[--vm->grayCount];
+		blackenObject(obj);
+	}
+}
+
 }
 
 void* reallocate(void* ptr, int oldSize, int newSize)
@@ -64,6 +119,7 @@ void* reallocate(void* ptr, int oldSize, int newSize)
 void markObject(Obj* object)
 {
 	if (object == nullptr) return;
+	if (object->isMarked) return;
 
 #if DEBUG_LOG_GC
 	printf("%p mark ", object);
@@ -99,6 +155,7 @@ void collectGarbage()
 #endif
 
 	markRoots();
+	traceReferences();
 
 #if DEBUG_LOG_GC
 	printf("-- gc end\n");

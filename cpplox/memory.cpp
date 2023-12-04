@@ -113,6 +113,13 @@ void sweep()
 		else
 		{
 			Obj* unreached = obj;
+
+#if DEBUG_LOG_GC
+	printf("%p sweep ", obj);
+	printValue(Value::toObj(obj));
+	printf("\n");
+#endif
+
 			obj = obj->next;
 
 			// LinkedList の繋ぎ直し

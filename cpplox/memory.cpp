@@ -72,6 +72,19 @@ void markObject(Obj* object)
 #endif
 
 	object->isMarked = true;
+
+	auto vm = getVM();
+	if (vm->grayCapacity < vm->grayCount + 1)
+	{
+		vm->grayCapacity = grow_capacity(vm->grayCapacity);
+
+		// NOTE: グレイスタックの割当てに reallocate を使わないのは、再帰的な GC のトリガーを防ぐため
+		void* res = realloc(vm->grayStack, sizeof(Obj*) * vm->grayCapacity);
+		if (res == nullptr) exit(1);
+		vm->grayStack = static_cast<Obj**>(res);
+	}
+
+	vm->grayStack[vm->grayCount++] = object;
 }
 
 void markValue(Value value)

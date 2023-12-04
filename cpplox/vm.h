@@ -30,6 +30,10 @@ struct VM
 	Table strings;
 	ObjUpvalue* openUpvalues = nullptr;
 	Obj* objects = nullptr;
+
+	int grayCount = 0;
+	int grayCapacity = 0;
+	Obj** grayStack = nullptr;
 };
 
 enum class InterpretResult

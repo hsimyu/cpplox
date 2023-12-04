@@ -524,7 +524,12 @@ void freeObjects()
 void initVM()
 {
 	resetStack();
+
 	vm.objects = nullptr;
+	vm.grayCount = 0;
+	vm.grayCapacity = 0;
+	vm.grayStack = nullptr;
+
 	initTable(&vm.globals);
 	initTable(&vm.strings);
 
@@ -536,6 +541,8 @@ void freeVM()
 	freeTable(&vm.globals);
 	freeTable(&vm.strings);
 	freeObjects();
+
+	free(vm.grayStack);
 }
 
 VM* getVM()

@@ -16,6 +16,7 @@ T* allocateObject(ObjType type)
 	// TODO: T と Obj がキャスト可能であることを保証する
 	Obj* o = static_cast<Obj*>(reallocate(nullptr, 0, sizeof(T)));
 	o->type = type;
+	o->isMarked = false;
 
 	// linked list として vm に登録
 	auto vm = getVM();

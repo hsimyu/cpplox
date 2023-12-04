@@ -35,6 +35,7 @@ enum class ObjType
 struct Obj
 {
 	ObjType type;
+	bool isMarked = false;
 	Obj* next = nullptr;
 };
 

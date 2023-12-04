@@ -1,5 +1,9 @@
 ﻿#pragma once
 
+#include "value.h"
+
+struct Obj;
+
 inline int grow_capacity(int capacity)
 {
 	return (capacity < 8) ? 8 : capacity * 2;
@@ -32,4 +36,6 @@ void free_array(T* ptr, int oldCount)
 	reallocate(ptr, sizeof(T) * oldCount, 0);
 }
 
+void markObject(Obj* object);
+void markValue(Value value);
 void collectGarbage();

@@ -36,9 +36,12 @@ ObjString* allocateString(char* chars, int length, uint32_t hash)
 	s->length = length;
 	s->chars = chars;
 	s->hash = hash;
+
 	// 文字列の intern 化
 	// Value はなんでもいいので nil を入れる
+	push(Value::toObj(s)); // GC 回避
 	tableSet(&getVM()->strings, s, Value::toNil());
+	pop();
 	return s;
 }
 

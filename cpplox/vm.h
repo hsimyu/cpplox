@@ -29,6 +29,9 @@ struct VM
 	Table globals;
 	Table strings;
 	ObjUpvalue* openUpvalues = nullptr;
+
+	size_t bytesAllocated = 0;
+	size_t nextGC;
 	Obj* objects = nullptr;
 
 	int grayCount = 0;

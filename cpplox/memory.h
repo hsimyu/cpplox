@@ -2,6 +2,8 @@
 
 #include "value.h"
 
+#define GC_HEAP_GROW_FACTOR 2
+
 struct Obj;
 
 inline int grow_capacity(int capacity)

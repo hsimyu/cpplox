@@ -143,11 +143,19 @@ void sweep()
 
 void* reallocate(void* ptr, int oldSize, int newSize)
 {
+	auto vm = getVM();
+	vm->bytesAllocated += newSize - oldSize;
+
 	if (newSize > oldSize)
 	{
 #if DEBUG_STRESS_GC
 		collectGarbage();
 #endif
+
+		if (vm->bytesAllocated > vm->nextGC)
+		{
+			collectGarbage();
+		}
 	}
 
 	if (newSize == 0)
@@ -194,8 +202,11 @@ void markValue(Value value)
 
 void collectGarbage()
 {
+	auto vm = getVM();
+
 #if DEBUG_LOG_GC
-	printf("-- gc begin\n");
+	printf("--- gc begin\n");
+	size_t before = vm->bytesAllocated;
 #endif
 
 	markRoots();
@@ -203,7 +214,13 @@ void collectGarbage()
 	tableRemoveWhite(&getVM()->strings);
 	sweep();
 
+	// 一度 GC したら、次は使用メモリ量の FACTOR 倍になるまで GC しない
+	// デフォルトは 2 倍
+	vm->nextGC = vm->bytesAllocated * GC_HEAP_GROW_FACTOR;
+
 #if DEBUG_LOG_GC
-	printf("-- gc end\n");
+	printf("--- gc end\n");
+	printf("   collected %zu bytes (from %zu to %zu) next at %zu\n",
+		   before - vm->bytesAllocated, before, vm->bytesAllocated, vm->nextGC);
 #endif
 }

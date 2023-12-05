@@ -200,6 +200,7 @@ void collectGarbage()
 
 	markRoots();
 	traceReferences();
+	tableRemoveWhite(&getVM()->strings);
 	sweep();
 
 #if DEBUG_LOG_GC

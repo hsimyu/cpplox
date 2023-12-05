@@ -219,8 +219,10 @@ bool isFalsey(Value value)
 
 void concatenate()
 {
-	ObjString* b = AS_STRING(pop());
-	ObjString* a = AS_STRING(pop());
+	// ここでスタックから文字列オブジェクトを取り出してしまうと、次の allocate 時に回収される可能性がある
+	// 処理が完了するまでは peek() で参照する
+	ObjString* b = AS_STRING(peek(0));
+	ObjString* a = AS_STRING(peek(1));
 
 	int length = a->length + b->length;
 	char* chars = allocate<char>(length + 1);
@@ -229,7 +231,9 @@ void concatenate()
 	chars[length] = '\0';
 
 	ObjString* result = takeString(chars, length);
-	push(toObjValue(result));
+	pop(); // b
+	pop(); // a
+	push(toObjValue(result)); // result
 }
 
 InterpretResult run()

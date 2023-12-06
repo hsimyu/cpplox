@@ -76,6 +76,14 @@ ObjClass* newClass(ObjString* name)
 	return klass;
 }
 
+ObjInstance* newInstance(ObjClass* klass)
+{
+	ObjInstance* instance = allocateObject<ObjInstance>(ObjType::Instance);
+	instance->klass = klass;
+	initTable(&instance->fields);
+	return instance;
+}
+
 ObjFunction* newFunction()
 {
 	ObjFunction* f = allocateObject<ObjFunction>(ObjType::Function);
@@ -166,6 +174,14 @@ void freeObject(Obj* obj)
 		break;
 	}
 
+	case Instance:
+	{
+		ObjInstance* i = reinterpret_cast<ObjInstance*>(obj);
+		freeTable(&i->fields);
+		free(i);
+		break;
+	}
+
 	case Function:
 	{
 		ObjFunction* f = reinterpret_cast<ObjFunction*>(obj);
@@ -210,6 +226,9 @@ void printObject(Value value)
 	using enum ObjType;
 	case Class:
 		printf("%s", AS_CLASS(value)->name->chars);
+		break;
+	case Instance:
+		printf("%s instance", AS_INSTANCE(value)->klass->name->chars);
 		break;
 	case Function:
 		printFunction(AS_FUNCTION(value));

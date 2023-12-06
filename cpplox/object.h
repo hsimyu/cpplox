@@ -4,11 +4,15 @@
 
 #include "chunk.h"
 #include "value.h"
+#include "table.h"
 
 #define OBJ_TYPE(value) (AS_OBJ(value)->type)
 
 #define IS_CLASS(value) isObjType(value, ObjType::Class)
 #define AS_CLASS(value) (reinterpret_cast<ObjClass*>(AS_OBJ(value)))
+
+#define IS_INSTANCE(value) isObjType(value, ObjType::Instance)
+#define AS_INSTANCE(value) (reinterpret_cast<ObjInstance*>(AS_OBJ(value)))
 
 #define IS_FUNCTION(value) isObjType(value, ObjType::Function)
 #define AS_FUNCTION(value) (reinterpret_cast<ObjFunction*>(AS_OBJ(value)))
@@ -29,6 +33,7 @@
 enum class ObjType
 {
 	Class,
+	Instance,
 	Function,
 	Native,
 	Closure,
@@ -101,6 +106,15 @@ struct ObjClass
 };
 
 ObjClass* newClass(ObjString* name);
+
+struct ObjInstance
+{
+	Obj obj;
+	ObjClass* klass = nullptr;
+	Table fields;
+};
+
+ObjInstance* newInstance(ObjClass* klass);
 
 void freeObject(Obj* obj);
 void printObject(Value value);

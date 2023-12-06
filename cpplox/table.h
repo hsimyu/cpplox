@@ -1,6 +1,9 @@
 ﻿#pragma once
 
-#include "object.h"
+#include <cstdint>
+#include "value.h"
+
+struct ObjString;
 
 struct Entry {
 	ObjString* key = nullptr;

@@ -64,6 +64,13 @@ void blackenObject(Obj* obj)
 		markObject(reinterpret_cast<Obj*>(klass->name));
 		break;
 	}
+	case ObjType::Instance:
+	{
+		ObjInstance* instance = reinterpret_cast<ObjInstance*>(obj);
+		markObject(reinterpret_cast<Obj*>(instance->klass));
+		markTable(&instance->fields);
+		break;
+	}
 	case ObjType::Closure:
 	{
 		ObjClosure* closure = reinterpret_cast<ObjClosure*>(obj);

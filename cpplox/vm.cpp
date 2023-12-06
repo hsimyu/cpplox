@@ -67,6 +67,13 @@ bool callValue(Value callee, int argCount)
 	{
 		switch (OBJ_TYPE(callee))
 		{
+		case ObjType::Class:
+		{
+			ObjClass* klass = AS_CLASS(callee);
+			// NOTE: 一旦呼び出し引数は無視する
+			vm.stackTop[-argCount - 1] = Value::toObj(newInstance(klass));
+			return true;
+		}
 		// All ObjType::Function are wrapped as closure
 		case ObjType::Closure:
 			return call(AS_CLOSURE(callee), argCount);

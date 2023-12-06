@@ -368,6 +368,49 @@ InterpretResult run()
 			break;
 		}
 
+		case OP_GET_PROPERTY:
+		{
+			// アクセス対象の instance がスタックに積まれているはず
+			if (!IS_INSTANCE(peek(0)))
+			{
+				runtimeError("Only instances have properties.");
+				return RuntimeError;
+			}
+
+			ObjInstance* instance = AS_INSTANCE(peek(0));
+			ObjString* name = READ_STRING();
+
+			Value value;
+			if (tableGet(&instance->fields, name, &value))
+			{
+				pop(); // instance
+				push(value);
+				break;
+			}
+
+			runtimeError("Undefine property '%s'.", name->chars);
+			return RuntimeError;
+		}
+
+		case OP_SET_PROPERTY:
+		{
+			// スタックトップには代入する Value
+			// スタックの 2 番目に代入先の Instance
+			if (!IS_INSTANCE(peek(1)))
+			{
+				runtimeError("Only instances have fields.");
+				return RuntimeError;
+			}
+
+			ObjInstance* instance = AS_INSTANCE(peek(1));
+			tableSet(&instance->fields, READ_STRING(), peek(0));
+
+			Value value = pop();
+			pop(); // instance
+			push(value); // 評価値
+			break;
+		}
+
 		case OP_EQUAL:
 		{
 			Value b = pop();

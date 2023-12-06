@@ -315,6 +315,7 @@ void variable();
 void unary();
 void binary();
 void call();
+void dot();
 void literal();
 void grouping();
 void expression();
@@ -328,7 +329,7 @@ ParseRule rules[] = {
 	/* TOKEN_LEFT_BRACE    */ {nullptr, nullptr, PREC_NONE},
 	/* TOKEN_RIGHT_BRACE   */ {nullptr, nullptr, PREC_NONE},
 	/* TOKEN_COMMA         */ {nullptr, nullptr, PREC_NONE},
-	/* TOKEN_DOT           */ {nullptr, nullptr, PREC_NONE},
+	/* TOKEN_DOT           */ {nullptr, dot, PREC_CALL},
 	/* TOKEN_MINUS         */ {unary, binary, PREC_TERM},
 	/* TOKEN_PLUS          */ {nullptr, binary, PREC_TERM},
 	/* TOKEN_SEMICOLON     */ {nullptr, nullptr, PREC_NONE},
@@ -725,6 +726,24 @@ void call()
 {
 	uint8_t argCount = argumentList();
 	emitBytes(OP_CALL, argCount);
+}
+
+void dot()
+{
+	consume(TOKEN_IDENTIFIER, "Expect property name after '.'.");
+	uint8_t name = identifierConstant(&parser.previous);
+
+	if (parser.canAssign && match(TOKEN_EQUAL))
+	{
+		// 左辺値なので、右辺の式を評価して SET
+		expression();
+		emitBytes(OP_SET_PROPERTY, name);
+	}
+	else
+	{
+		// 右辺値なので、name を使って GET
+		emitBytes(OP_GET_PROPERTY, name);
+	}
 }
 
 void literal()

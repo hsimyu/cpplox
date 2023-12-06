@@ -58,6 +58,12 @@ void blackenObject(Obj* obj)
 
 	switch (obj->type)
 	{
+	case ObjType::Class:
+	{
+		ObjClass* klass = reinterpret_cast<ObjClass*>(obj);
+		markObject(reinterpret_cast<Obj*>(klass->name));
+		break;
+	}
 	case ObjType::Closure:
 	{
 		ObjClosure* closure = reinterpret_cast<ObjClosure*>(obj);

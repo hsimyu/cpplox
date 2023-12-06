@@ -7,6 +7,9 @@
 
 #define OBJ_TYPE(value) (AS_OBJ(value)->type)
 
+#define IS_CLASS(value) isObjType(value, ObjType::Class)
+#define AS_CLASS(value) (reinterpret_cast<ObjClass*>(AS_OBJ(value)))
+
 #define IS_FUNCTION(value) isObjType(value, ObjType::Function)
 #define AS_FUNCTION(value) (reinterpret_cast<ObjFunction*>(AS_OBJ(value)))
 
@@ -25,6 +28,7 @@
 
 enum class ObjType
 {
+	Class,
 	Function,
 	Native,
 	Closure,
@@ -89,6 +93,14 @@ struct ObjString
 
 ObjString* takeString(char* chars, int length);
 ObjString* copyString(const char* chars, int length);
+
+struct ObjClass
+{
+	Obj obj;
+	ObjString* name = nullptr;
+};
+
+ObjClass* newClass(ObjString* name);
 
 void freeObject(Obj* obj);
 void printObject(Value value);

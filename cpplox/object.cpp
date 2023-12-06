@@ -69,6 +69,13 @@ void printFunction(ObjFunction* function)
 
 }
 
+ObjClass* newClass(ObjString* name)
+{
+	ObjClass* klass = allocateObject<ObjClass>(ObjType::Class);
+	klass->name = name;
+	return klass;
+}
+
 ObjFunction* newFunction()
 {
 	ObjFunction* f = allocateObject<ObjFunction>(ObjType::Function);
@@ -152,6 +159,13 @@ void freeObject(Obj* obj)
 
 	using enum ObjType;
 
+	case Class:
+	{
+		ObjClass* f = reinterpret_cast<ObjClass*>(obj);
+		free(f);
+		break;
+	}
+
 	case Function:
 	{
 		ObjFunction* f = reinterpret_cast<ObjFunction*>(obj);
@@ -194,6 +208,9 @@ void printObject(Value value)
 	switch (OBJ_TYPE(value))
 	{
 	using enum ObjType;
+	case Class:
+		printf("%s", AS_CLASS(value)->name->chars);
+		break;
 	case Function:
 		printFunction(AS_FUNCTION(value));
 		break;

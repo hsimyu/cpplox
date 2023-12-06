@@ -497,6 +497,12 @@ InterpretResult run()
 			break;
 		}
 
+		case OP_CLASS:
+		{
+			push(Value::toObj(newClass(READ_STRING())));
+			break;
+		}
+
 		default:
 			return RuntimeError;
 

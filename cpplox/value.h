@@ -1,6 +1,7 @@
 ﻿#pragma once
 
 struct Obj;
+struct ObjClass;
 struct ObjFunction;
 struct ObjNative;
 struct ObjClosure;
@@ -62,6 +63,14 @@ struct Value
 		return {
 			.type = ValueType::Obj,
 			.as = { .obj = obj },
+		};
+	}
+
+	static Value toObj(ObjClass* obj)
+	{
+		return {
+			.type = ValueType::Obj,
+			.as = { .obj = reinterpret_cast<Obj*>(obj) },
 		};
 	}
 

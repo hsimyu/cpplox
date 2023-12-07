@@ -103,6 +103,7 @@ struct ObjClass
 {
 	Obj obj;
 	ObjString* name = nullptr;
+	Table methods;
 };
 
 ObjClass* newClass(ObjString* name);

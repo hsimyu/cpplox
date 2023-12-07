@@ -73,6 +73,7 @@ ObjClass* newClass(ObjString* name)
 {
 	ObjClass* klass = allocateObject<ObjClass>(ObjType::Class);
 	klass->name = name;
+	initTable(&klass->methods);
 	return klass;
 }
 
@@ -170,6 +171,7 @@ void freeObject(Obj* obj)
 	case Class:
 	{
 		ObjClass* f = reinterpret_cast<ObjClass*>(obj);
+		freeTable(&f->methods);
 		free(f);
 		break;
 	}

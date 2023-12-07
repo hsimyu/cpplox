@@ -144,6 +144,15 @@ void closeUpvalues(Value* last)
 	}
 }
 
+void defineMethod(ObjString* methodName)
+{
+	// 型チェックはコンパイル時に行われているので不要
+	Value method = peek(0); // ObjClosure* のはず
+	ObjClass* klass = AS_CLASS(peek(1));
+	tableSet(&klass->methods, methodName, method);
+	pop(); // method を pop
+}
+
 void resetStack()
 {
 	vm.stackTop = vm.stack;
@@ -550,6 +559,12 @@ InterpretResult run()
 		case OP_CLASS:
 		{
 			push(Value::toObj(newClass(READ_STRING())));
+			break;
+		}
+
+		case OP_METHOD:
+		{
+			defineMethod(READ_STRING());
 			break;
 		}
 

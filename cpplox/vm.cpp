@@ -67,6 +67,11 @@ bool callValue(Value callee, int argCount)
 	{
 		switch (OBJ_TYPE(callee))
 		{
+		case ObjType::BoundMethod:
+		{
+			ObjBoundMethod* bound = AS_BOUND_METHOD(callee);
+			return call(bound->method, argCount);
+		}
 		case ObjType::Class:
 		{
 			ObjClass* klass = AS_CLASS(callee);
@@ -93,6 +98,21 @@ bool callValue(Value callee, int argCount)
 	}
 	runtimeError("Can only call functions and classes.");
 	return false;
+}
+
+bool bindMethod(ObjClass* klass, ObjString* name)
+{
+	Value method;
+	if (!tableGet(&klass->methods, name, &method))
+	{
+		return false;
+	}
+
+	// スタックトップにバインド対象のインスタンスがいるはず
+	ObjBoundMethod* bound = newBoundMethod(peek(0), AS_CLOSURE(method));
+	pop(); // instance
+	push(Value::toObj(bound));
+	return true;
 }
 
 ObjUpvalue* captureUpvalue(Value* local)
@@ -397,7 +417,12 @@ InterpretResult run()
 				break;
 			}
 
-			runtimeError("Undefine property '%s'.", name->chars);
+			if (!bindMethod(instance->klass, name))
+			{
+				runtimeError("Undefine property '%s'.", name->chars);
+				return RuntimeError;
+			}
+
 			return RuntimeError;
 		}
 

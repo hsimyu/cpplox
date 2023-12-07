@@ -3,6 +3,7 @@
 struct Obj;
 struct ObjClass;
 struct ObjInstance;
+struct ObjBoundMethod;
 struct ObjFunction;
 struct ObjNative;
 struct ObjClosure;
@@ -76,6 +77,14 @@ struct Value
 	}
 
 	static Value toObj(ObjInstance* obj)
+	{
+		return {
+			.type = ValueType::Obj,
+			.as = { .obj = reinterpret_cast<Obj*>(obj) },
+		};
+	}
+
+	static Value toObj(ObjBoundMethod* obj)
 	{
 		return {
 			.type = ValueType::Obj,

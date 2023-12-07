@@ -14,6 +14,9 @@
 #define IS_INSTANCE(value) isObjType(value, ObjType::Instance)
 #define AS_INSTANCE(value) (reinterpret_cast<ObjInstance*>(AS_OBJ(value)))
 
+#define IS_BOUND_METHOD(value) isObjType(value, ObjType::BoundMethod)
+#define AS_BOUND_METHOD(value) (reinterpret_cast<ObjBoundMethod*>(AS_OBJ(value)))
+
 #define IS_FUNCTION(value) isObjType(value, ObjType::Function)
 #define AS_FUNCTION(value) (reinterpret_cast<ObjFunction*>(AS_OBJ(value)))
 
@@ -34,6 +37,7 @@ enum class ObjType
 {
 	Class,
 	Instance,
+	BoundMethod,
 	Function,
 	Native,
 	Closure,
@@ -116,6 +120,15 @@ struct ObjInstance
 };
 
 ObjInstance* newInstance(ObjClass* klass);
+
+struct ObjBoundMethod
+{
+	Obj obj;
+	Value receiver;
+	ObjClosure* method = nullptr;
+};
+
+ObjBoundMethod* newBoundMethod(Value receiver, ObjClosure* method);
 
 void freeObject(Obj* obj);
 void printObject(Value value);

@@ -85,6 +85,14 @@ ObjInstance* newInstance(ObjClass* klass)
 	return instance;
 }
 
+ObjBoundMethod* newBoundMethod(Value receiver, ObjClosure* method)
+{
+	ObjBoundMethod* bound = allocateObject<ObjBoundMethod>(ObjType::BoundMethod);
+	bound->receiver = receiver;
+	bound->method = method;
+	return bound;
+}
+
 ObjFunction* newFunction()
 {
 	ObjFunction* f = allocateObject<ObjFunction>(ObjType::Function);
@@ -184,6 +192,13 @@ void freeObject(Obj* obj)
 		break;
 	}
 
+	case BoundMethod:
+	{
+		ObjBoundMethod* b = reinterpret_cast<ObjBoundMethod*>(obj);
+		free(b);
+		break;
+	}
+
 	case Function:
 	{
 		ObjFunction* f = reinterpret_cast<ObjFunction*>(obj);
@@ -231,6 +246,9 @@ void printObject(Value value)
 		break;
 	case Instance:
 		printf("%s instance", AS_INSTANCE(value)->klass->name->chars);
+		break;
+	case BoundMethod:
+		printFunction(AS_BOUND_METHOD(value)->method->function);
 		break;
 	case Function:
 		printFunction(AS_FUNCTION(value));

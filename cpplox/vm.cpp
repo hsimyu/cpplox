@@ -70,6 +70,8 @@ bool callValue(Value callee, int argCount)
 		case ObjType::BoundMethod:
 		{
 			ObjBoundMethod* bound = AS_BOUND_METHOD(callee);
+			// メソッド呼び出しのスロット 0 (予約) にインスタンスを差し込む
+			vm.stackTop[-argCount - 1] = bound->receiver;
 			return call(bound->method, argCount);
 		}
 		case ObjType::Class:

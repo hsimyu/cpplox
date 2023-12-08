@@ -70,6 +70,7 @@ struct Upvalue
 enum class FunctionType
 {
 	Function,
+	Method,
 	Script,
 };
 
@@ -262,8 +263,19 @@ void initCompiler(Compiler* compiler, FunctionType type)
 	Local* local = &current->locals[current->localCount++];
 	local->depth = 0;
 	local->isCaptured = false;
-	local->name.start = "";
-	local->name.length = 0;
+
+	if (type != FunctionType::Function)
+	{
+		// メソッドなので this を定義
+		// TODO: Script の場合の this とは……?
+		local->name.start = "this";
+		local->name.length = 4;
+	}
+	else
+	{
+		local->name.start = "";
+		local->name.length = 0;
+	}
 }
 
 ObjFunction* endCompiler()
@@ -312,6 +324,7 @@ void or_();
 void number();
 void str();
 void variable();
+void this_();
 void unary();
 void binary();
 void call();
@@ -358,7 +371,7 @@ ParseRule rules[] = {
 	/* TOKEN_PRINT         */ {nullptr, nullptr, PREC_NONE},
 	/* TOKEN_RETURN        */ {nullptr, nullptr, PREC_NONE},
 	/* TOKEN_SUPER         */ {nullptr, nullptr, PREC_NONE},
-	/* TOKEN_THIS          */ {nullptr, nullptr, PREC_NONE},
+	/* TOKEN_THIS          */ {this_, nullptr, PREC_NONE},
 	/* TOKEN_TRUE          */ {literal, nullptr, PREC_NONE},
 	/* TOKEN_VAR           */ {nullptr, nullptr, PREC_NONE},
 	/* TOKEN_WHILE         */ {nullptr, nullptr, PREC_NONE},
@@ -656,6 +669,15 @@ void variable()
 	namedVariable(parser.previous);
 }
 
+void this_()
+{
+	bool canAssign = parser.canAssign;
+
+	parser.canAssign = false;
+	variable(); // parser.previous の "this" をローカル変数名として消費
+	parser.canAssign = canAssign;
+}
+
 void unary()
 {
 	auto opType = parser.previous.type;
@@ -823,7 +845,7 @@ void method()
 	consume(TOKEN_IDENTIFIER, "Expect method name.");
 	uint8_t constant = identifierConstant(&parser.previous);
 
-	function(FunctionType::Function);
+	function(FunctionType::Method);
 
 	emitBytes(OP_METHOD, constant);
 }

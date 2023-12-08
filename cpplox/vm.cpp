@@ -77,8 +77,20 @@ bool callValue(Value callee, int argCount)
 		case ObjType::Class:
 		{
 			ObjClass* klass = AS_CLASS(callee);
-			// NOTE: 一旦呼び出し引数は無視する
 			vm.stackTop[-argCount - 1] = Value::toObj(newInstance(klass));
+
+			Value initializer;
+			if (tableGet(&klass->methods, vm.initString, &initializer))
+			{
+				// "init" 関数があればそれを初期化子として呼び出す
+				return call(AS_CLOSURE(initializer), argCount);
+			}
+			else if (argCount != 0)
+			{
+				// "init" が定義されていないのに引数が渡されていた場合はエラーにする
+				runtimeError("Expected 0 arguments but got %d.", argCount);
+				return false;
+			}
 			return true;
 		}
 		// All ObjType::Function are wrapped as closure
@@ -638,6 +650,9 @@ void initVM()
 	initTable(&vm.globals);
 	initTable(&vm.strings);
 
+	// 初期化子関数名は "init" で固定
+	vm.initString = copyString("init", 4);
+
 	defineNative("clock", clockNative);
 }
 
@@ -645,6 +660,8 @@ void freeVM()
 {
 	freeTable(&vm.globals);
 	freeTable(&vm.strings);
+	vm.initString = nullptr;
+
 	freeObjects();
 
 	free(vm.grayStack);

@@ -28,6 +28,7 @@ struct VM
 	Value* stackTop = nullptr;
 	Table globals;
 	Table strings;
+	ObjString* initString = nullptr;
 	ObjUpvalue* openUpvalues = nullptr;
 
 	size_t bytesAllocated = 0;

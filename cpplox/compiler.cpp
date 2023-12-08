@@ -71,6 +71,7 @@ enum class FunctionType
 {
 	Function,
 	Method,
+	Initializer,
 	Script,
 };
 
@@ -243,7 +244,16 @@ void emitConstant(Value value)
 
 void emitReturn()
 {
-	emitByte(OP_NIL); // 引数なしの return の場合は nil を返す
+	if (current->type == FunctionType::Initializer)
+	{
+		// 初期化子の場合は自動的に instance を返す
+		// メソッド呼び出しの場合、インスタンスは必ずスロット 0 に入っている
+		emitBytes(OP_GET_LOCAL, 0);
+	}
+	else
+	{
+		emitByte(OP_NIL); // 引数なしの return の場合は nil を返す
+	}
 	emitByte(OP_RETURN);
 }
 
@@ -857,7 +867,13 @@ void method()
 	consume(TOKEN_IDENTIFIER, "Expect method name.");
 	uint8_t constant = identifierConstant(&parser.previous);
 
-	function(FunctionType::Method);
+	auto type = FunctionType::Method;
+	// もし "init" を別の文字列にするなら、ここの長さも変えないといけない
+	if (parser.previous.length == 4 && memcmp(parser.previous.start, "init", 4) == 0)
+	{
+		type = FunctionType::Initializer;
+	}
+	function(type);
 
 	emitBytes(OP_METHOD, constant);
 }

@@ -38,6 +38,8 @@ void markRoots()
 	// グローバル変数テーブルをマーク
 	markTable(&vm->globals);
 	markCompilerRoots();
+
+	markObject(reinterpret_cast<Obj*>(vm->initString));
 }
 
 void markArray(ValueArray* array)

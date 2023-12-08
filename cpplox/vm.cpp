@@ -114,6 +114,30 @@ bool callValue(Value callee, int argCount)
 	return false;
 }
 
+bool invokeFromClass(ObjClass* klass, ObjString* name, int argCount)
+{
+	Value method;
+	if (!tableGet(&klass->methods, name, &method))
+	{
+		runtimeError("Undefine property '%s'.", name->chars);
+		return false;
+	}
+	return call(AS_CLOSURE(method), argCount);
+}
+
+bool invoke(ObjString* name, int argCount)
+{
+	Value receiver = peek(argCount); // インスタンスが入っている位置を狙う
+	if (!IS_INSTANCE(receiver))
+	{
+		runtimeError("Only instances have methods.");
+		return false;
+	}
+
+	ObjInstance* instance = AS_INSTANCE(receiver);
+	return invokeFromClass(instance->klass, name, argCount);
+}
+
 bool bindMethod(ObjClass* klass, ObjString* name)
 {
 	Value method;
@@ -541,6 +565,18 @@ InterpretResult run()
 			}
 			// 呼び出しが成功したので呼び出し元を frame 変数にキャッシュしておく
 			// NOTE: Native 関数の場合、frame の指し位置は変わらない
+			frame = &vm.frames[vm.frameCount - 1];
+			break;
+		}
+
+		case OP_INVOKE:
+		{
+			ObjString* method = READ_STRING();
+			int argCount = READ_BYTE();
+			if (!invoke(method, argCount))
+			{
+				return RuntimeError;
+			}
 			frame = &vm.frames[vm.frameCount - 1];
 			break;
 		}

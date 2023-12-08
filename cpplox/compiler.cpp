@@ -783,6 +783,15 @@ void dot()
 		expression();
 		emitBytes(OP_SET_PROPERTY, name);
 	}
+	else if (match(TOKEN_LEFT_PAREN))
+	{
+		// プロパティ名のすぐ後に括弧が来ていたら、関数呼び出しと解釈
+		uint8_t argCount = argumentList();
+
+		// OP_INVOKE = OP_GET_PROPERTY + OP_CALL
+		emitBytes(OP_INVOKE, name);
+		emitByte(argCount);
+	}
 	else
 	{
 		// 右辺値なので、name を使って GET

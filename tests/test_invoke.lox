@@ -1,0 +1,19 @@
+class Tester {
+    call() {
+        return;
+    }
+}
+
+var t = Tester();
+var start = clock();
+var count = 0;
+var current = clock();
+
+while (current - start < 1.0)
+{
+    t.call();
+    current = clock();
+    count = count + 1;
+}
+
+print count;

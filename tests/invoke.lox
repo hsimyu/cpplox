@@ -1,0 +1,12 @@
+fun f() {
+    print "not a method";
+}
+
+class Oops {
+    init() {
+        this.field = f;
+    }
+}
+
+var oops = Oops();
+oops.field();

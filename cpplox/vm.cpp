@@ -423,7 +423,7 @@ InterpretResult run()
 				return RuntimeError;
 			}
 
-			return RuntimeError;
+			break;
 		}
 
 		case OP_SET_PROPERTY:

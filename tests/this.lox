@@ -7,3 +7,18 @@ var pair = Pair();
 pair.first = 1;
 pair.second = 2;
 print pair.sum();
+
+class PairWithInit {
+    init(first, second)
+    {
+        this.first = first;
+        this.second = second;
+    }
+
+    sum() {
+        return this.first + this.second;
+    }
+}
+
+var pair2 = PairWithInit(2, 8);
+print pair2.sum();

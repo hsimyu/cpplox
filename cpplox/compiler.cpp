@@ -1057,6 +1057,11 @@ void returnStatement()
 	}
 	else
 	{
+		if (current->type == FunctionType::Initializer)
+		{
+			error("Can't return a value from an initializer.");
+		}
+
 		expression();
 		consume(TOKEN_SEMICOLON, "Expect ';' after return value.");
 		emitByte(OP_RETURN);

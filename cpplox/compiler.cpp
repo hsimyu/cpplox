@@ -91,6 +91,12 @@ struct Compiler
 Parser parser;
 Compiler* current = nullptr;
 
+struct ClassCompiler
+{
+	ClassCompiler* enclosing = nullptr;
+};
+ClassCompiler* currentClass = nullptr;
+
 Chunk* currentChunk()
 {
 	return &current->function->chunk;
@@ -671,6 +677,12 @@ void variable()
 
 void this_()
 {
+	if (currentClass == nullptr)
+	{
+		error("Can't use 'this' outside of a class.");
+		return;
+	}
+
 	bool canAssign = parser.canAssign;
 
 	parser.canAssign = false;
@@ -862,6 +874,10 @@ void classDeclaration()
 	emitBytes(OP_CLASS, nameConstant);
 	defineVariable(nameConstant);
 
+	ClassCompiler classCompiler;
+	classCompiler.enclosing = currentClass;
+	currentClass = &classCompiler;
+
 	// メソッド定義のため、クラス変数を積んでおく
 	namedVariable(className);
 	consume(TOKEN_LEFT_BRACE, "Expect '{' before class body.");
@@ -875,6 +891,8 @@ void classDeclaration()
 
 	// クラスを pop
 	emitByte(OP_POP);
+
+	currentClass = currentClass->enclosing;
 }
 
 void funDeclaration()

@@ -602,6 +602,20 @@ InterpretResult run()
 			break;
 		}
 
+		case OP_SUPER_INVOKE:
+		{
+			ObjString* method = READ_STRING();
+			int argCount = READ_BYTE();
+			ObjClass* superclass = AS_CLASS(pop());
+			// super クラスのメソッド呼び出し時は、フィールドを探索しなくていいのでメソッドとして直接呼び出ししてよい
+			if (!invokeFromClass(superclass, method, argCount))
+			{
+				return RuntimeError;
+			}
+			frame = &vm.frames[vm.frameCount - 1];
+			break;
+		}
+
 		case OP_CLOSURE: {
 			ObjFunction* function = AS_FUNCTION(READ_CONSTANT());
 			ObjClosure* closure = newClosure(function);

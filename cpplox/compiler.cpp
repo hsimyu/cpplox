@@ -713,10 +713,20 @@ void super()
 	bool canAssign = parser.canAssign;
 	parser.canAssign = false;
 	namedVariable(syntheticToken("this"));
-	namedVariable(syntheticToken("super"));
-	parser.canAssign = canAssign;
 
-	emitBytes(OP_GET_SUPER, name);
+	if (match(TOKEN_LEFT_PAREN))
+	{
+		uint8_t argCount = argumentList();
+		namedVariable(syntheticToken("super"));
+		emitBytes(OP_SUPER_INVOKE, name);
+		emitByte(argCount);
+	}
+	else
+	{
+		namedVariable(syntheticToken("super"));
+		emitBytes(OP_GET_SUPER, name);
+	}
+	parser.canAssign = canAssign;
 }
 
 void this_()

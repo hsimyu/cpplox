@@ -1,0 +1,15 @@
+class Doughnut {
+    finish(ingredient) {
+        print "Finish with " + ingredient;
+    }
+}
+
+class Cruller < Doughnut {
+    finish()
+    {
+        super.finish("icing");
+    }
+}
+
+var c = Cruller();
+c.finish();

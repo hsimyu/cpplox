@@ -578,7 +578,7 @@ uint8_t parseVariable(const char* errorMessage)
 
 void markInitialized()
 {
-	if (current->scopeDepth = 0) return;
+	if (current->scopeDepth == 0) return;
 	current->locals[current->localCount - 1].depth = current->scopeDepth;
 }
 

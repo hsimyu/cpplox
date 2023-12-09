@@ -95,6 +95,7 @@ Compiler* current = nullptr;
 struct ClassCompiler
 {
 	ClassCompiler* enclosing = nullptr;
+	bool hasSuperclass = false;
 };
 ClassCompiler* currentClass = nullptr;
 
@@ -685,6 +686,14 @@ void variable()
 	namedVariable(parser.previous);
 }
 
+Token syntheticToken(const char* text)
+{
+	Token token;
+	token.start = text;
+	token.length = static_cast<int>(strlen(text));
+	return token;
+}
+
 void this_()
 {
 	if (currentClass == nullptr)
@@ -915,10 +924,16 @@ void classDeclaration()
 			error("A class can't inherit from itself.");
 		}
 
+		// 新しいスコープを作り、super 変数を束縛しておく
+		beginScope();
+		addLocal(syntheticToken("super"));
+		defineVariable(0);
+
 		namedVariable(className); // 継承先を push
 		parser.canAssign = canAssign;
 
 		emitByte(OP_INHERIT);
+		classCompiler.hasSuperclass = true;
 	}
 
 	// メソッド定義のため、クラス変数を積んでおく
@@ -934,6 +949,11 @@ void classDeclaration()
 
 	// クラスを pop
 	emitByte(OP_POP);
+
+	if (classCompiler.hasSuperclass)
+	{
+		endScope();
+	}
 
 	currentClass = currentClass->enclosing;
 }

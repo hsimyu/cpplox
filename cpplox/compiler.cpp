@@ -342,6 +342,7 @@ void number();
 void str();
 void variable();
 void this_();
+void super();
 void unary();
 void binary();
 void call();
@@ -387,7 +388,7 @@ ParseRule rules[] = {
 	/* TOKEN_OR            */ {nullptr, or_, PREC_OR},
 	/* TOKEN_PRINT         */ {nullptr, nullptr, PREC_NONE},
 	/* TOKEN_RETURN        */ {nullptr, nullptr, PREC_NONE},
-	/* TOKEN_SUPER         */ {nullptr, nullptr, PREC_NONE},
+	/* TOKEN_SUPER         */ {super, nullptr, PREC_NONE},
 	/* TOKEN_THIS          */ {this_, nullptr, PREC_NONE},
 	/* TOKEN_TRUE          */ {literal, nullptr, PREC_NONE},
 	/* TOKEN_VAR           */ {nullptr, nullptr, PREC_NONE},
@@ -692,6 +693,30 @@ Token syntheticToken(const char* text)
 	token.start = text;
 	token.length = static_cast<int>(strlen(text));
 	return token;
+}
+
+void super()
+{
+	if (currentClass == nullptr)
+	{
+		error("Can't use 'super' outside of a class.");
+	}
+	else if (!currentClass->hasSuperclass)
+	{
+		error("Can't use 'super' in a class with no superclass.");
+	}
+
+	consume(TOKEN_DOT, "Expect '.' after 'super'.");
+	consume(TOKEN_IDENTIFIER, "Expect superclass method name.");
+	uint8_t name = identifierConstant(&parser.previous);
+
+	bool canAssign = parser.canAssign;
+	parser.canAssign = false;
+	namedVariable(syntheticToken("this"));
+	namedVariable(syntheticToken("super"));
+	parser.canAssign = canAssign;
+
+	emitBytes(OP_GET_SUPER, name);
 }
 
 void this_()

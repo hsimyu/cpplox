@@ -646,6 +646,22 @@ InterpretResult run()
 			break;
 		}
 
+		case OP_INHERIT:
+		{
+			Value superClass = peek(1);
+			if (!IS_CLASS(superClass))
+			{
+				runtimeError("Superclass must be a class.");
+				return RuntimeError;
+			}
+
+			ObjClass* subClass = AS_CLASS(peek(0));
+			// 親クラスのメソッドを全て子クラスに突っ込む
+			tableAddAll(&AS_CLASS(superClass)->methods, &subClass->methods);
+			pop();
+			break;
+		}
+
 		case OP_METHOD:
 		{
 			defineMethod(READ_STRING());

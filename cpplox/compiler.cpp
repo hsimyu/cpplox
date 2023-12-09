@@ -903,6 +903,24 @@ void classDeclaration()
 	classCompiler.enclosing = currentClass;
 	currentClass = &classCompiler;
 
+	if (match(TOKEN_LESS))
+	{
+		consume(TOKEN_IDENTIFIER, "Expect super class name after '<'.");
+		bool canAssign = parser.canAssign;
+		parser.canAssign = false;
+		variable(); // スーパークラス名を変数として push
+
+		if (identifierEqual(&className, &parser.previous))
+		{
+			error("A class can't inherit from itself.");
+		}
+
+		namedVariable(className); // 継承先を push
+		parser.canAssign = canAssign;
+
+		emitByte(OP_INHERIT);
+	}
+
 	// メソッド定義のため、クラス変数を積んでおく
 	namedVariable(className);
 	consume(TOKEN_LEFT_BRACE, "Expect '{' before class body.");

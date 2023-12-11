@@ -165,6 +165,11 @@ ObjString* copyString(const char* chars, int length)
 	return allocateString(heapChars, length, hash);
 }
 
+ObjString* copyString(const char* chars)
+{
+	return copyString(chars, static_cast<int>(strlen(chars)));
+}
+
 void freeObject(Obj* obj)
 {
 #if DEBUG_LOG_GC
@@ -265,5 +270,77 @@ void printObject(Value value)
 	case String:
 		printf("%s", AS_CSTRING(value));
 		break;
+	}
+}
+
+void writeObjString(Value value, char* buffer, size_t bufferSize)
+{
+	switch (OBJ_TYPE(value))
+	{
+	using enum ObjType;
+	case Class:
+	{
+		snprintf(buffer, bufferSize, "%s", AS_CLASS(value)->name->chars);
+		break;
+	}
+	case Instance:
+	{
+		snprintf(buffer, bufferSize, "%s instance", AS_INSTANCE(value)->klass->name->chars);
+		break;
+	}
+	case BoundMethod:
+	{
+		ObjFunction* function = AS_BOUND_METHOD(value)->method->function;
+		if (function->name == nullptr)
+		{
+			snprintf(buffer, bufferSize, "<script>");
+		}
+		else
+		{
+			snprintf(buffer, bufferSize, "<fn %s>", function->name->chars);
+		}
+		break;
+	}
+	case Function:
+	{
+		ObjFunction* function = AS_FUNCTION(value);
+		if (function->name == nullptr)
+		{
+			snprintf(buffer, bufferSize, "<script>");
+		}
+		else
+		{
+			snprintf(buffer, bufferSize, "<fn %s>", function->name->chars);
+		}
+		break;
+	}
+	case Native:
+	{
+		snprintf(buffer, bufferSize, "<native fn>");
+		break;
+	}
+	case Closure:
+	{
+		ObjFunction* function = AS_CLOSURE(value)->function;
+		if (function->name == nullptr)
+		{
+			snprintf(buffer, bufferSize, "<script>");
+		}
+		else
+		{
+			snprintf(buffer, bufferSize, "<fn %s>", function->name->chars);
+		}
+		break;
+	}
+	case Upvalue:
+	{
+		snprintf(buffer, bufferSize, "upvalue");
+		break;
+	}
+	case String:
+	{
+		snprintf(buffer, bufferSize, "%s", AS_CSTRING(value));
+		break;
+	}
 	}
 }

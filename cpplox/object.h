@@ -102,6 +102,7 @@ struct ObjString
 
 ObjString* takeString(char* chars, int length);
 ObjString* copyString(const char* chars, int length);
+ObjString* copyString(const char* chars);
 
 struct ObjClass
 {
@@ -132,6 +133,7 @@ ObjBoundMethod* newBoundMethod(Value receiver, ObjClosure* method);
 
 void freeObject(Obj* obj);
 void printObject(Value value);
+void writeObjString(Value value, char* buffer, size_t bufferSize);
 
 inline Value toObjValue(ObjString* s)
 {

@@ -134,6 +134,7 @@ struct Value
 };
 
 void printValue(Value val);
+ObjString* toString(Value val);
 
 struct ValueArray
 {

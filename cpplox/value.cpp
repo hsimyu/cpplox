@@ -25,6 +25,46 @@ void printValue(Value val)
 	}
 }
 
+ObjString* toString(Value val)
+{
+	constexpr size_t toStringBufferSize = 64;
+	switch (val.type)
+	{
+	using enum ValueType;
+	case Bool:
+	{
+		if (AS_BOOL(val))
+		{
+			return copyString("true");
+		}
+		else
+		{
+			return copyString("false");
+		}
+	}
+	case Nil:
+	{
+		return copyString("nil");
+	}
+	case Number:
+	{
+		char buffer[toStringBufferSize];
+		snprintf(buffer, toStringBufferSize, "%g", AS_NUMBER(val));
+		buffer[toStringBufferSize - 1] = '\0';
+		return copyString(buffer);
+	}
+	case Obj:
+	{
+		char buffer[toStringBufferSize];
+		writeObjString(val, buffer, toStringBufferSize);
+		buffer[toStringBufferSize - 1] = '\0';
+		return copyString(buffer);
+	}
+	default:
+		return copyString("unknown");
+	}
+}
+
 void ValueArray::Init()
 {
 	count = 0;

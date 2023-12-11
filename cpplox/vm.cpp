@@ -24,6 +24,11 @@ Value clockNative(int argCount, Value* args)
 	return Value::toNumber(static_cast<double>(clock()) / CLOCKS_PER_SEC);
 }
 
+Value toStringNative(int argCount, Value* args)
+{
+	return Value::toObj(toString(args[0]));
+}
+
 }
 
 namespace
@@ -741,6 +746,7 @@ void initVM()
 	vm.initString = copyString("init", 4);
 
 	defineNative("clock", clockNative);
+	defineNative("tostring", toStringNative);
 }
 
 void freeVM()

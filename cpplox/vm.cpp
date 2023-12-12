@@ -21,12 +21,12 @@ namespace
 
 Value clockNative(int argCount, Value* args)
 {
-	return Value::toNumber(static_cast<double>(clock()) / CLOCKS_PER_SEC);
+	return TO_NUMBER(static_cast<double>(clock()) / CLOCKS_PER_SEC);
 }
 
 Value toStringNative(int argCount, Value* args)
 {
-	return Value::toObj(toString(args[0]));
+	return TO_OBJ(toString(args[0]));
 }
 
 }
@@ -82,7 +82,7 @@ bool callValue(Value callee, int argCount)
 		case ObjType::Class:
 		{
 			ObjClass* klass = AS_CLASS(callee);
-			vm.stackTop[-argCount - 1] = Value::toObj(newInstance(klass));
+			vm.stackTop[-argCount - 1] = TO_OBJ(newInstance(klass));
 
 			Value initializer;
 			if (tableGet(&klass->methods, vm.initString, &initializer))
@@ -163,7 +163,7 @@ bool bindMethod(ObjClass* klass, ObjString* name)
 	// スタックトップにバインド対象のインスタンスがいるはず
 	ObjBoundMethod* bound = newBoundMethod(peek(0), AS_CLOSURE(method));
 	pop(); // instance
-	push(Value::toObj(bound));
+	push(TO_OBJ(bound));
 	return true;
 }
 
@@ -274,8 +274,8 @@ void runtimeError(const char* format, ...)
 void defineNative(const char* name, NativeFn function)
 {
 	// 割当てたオブジェクトが即座に GC の対象になったりしないように、スタックに入れておく
-	push(Value::toObj(copyString(name, static_cast<int>(strlen(name)))));
-	push(Value::toObj(newNative(function)));
+	push(TO_OBJ(copyString(name, static_cast<int>(strlen(name)))));
+	push(TO_OBJ(newNative(function)));
 
 	// ネイティブ関数は global に入れる
 	// TODO: ここでスタックは空になっている前提で合っている？
@@ -293,7 +293,7 @@ void defineNative(const char* name, NativeFn function)
         } \
 		double b = AS_NUMBER(pop()); \
 		double a = AS_NUMBER(pop()); \
-		push(Value::to##ValueType(a op b)); \
+		push(TO_##ValueType(a op b)); \
 	} while (false)
 
 bool isFalsey(Value value)
@@ -371,15 +371,15 @@ InterpretResult run()
 		}
 
 		case OP_NIL:
-			push(Value::toNil());
+			push(TO_NIL());
 			break;
 
 		case OP_TRUE:
-			push(Value::toBool(true));
+			push(TO_BOOL(true));
 			break;
 
 		case OP_FALSE:
-			push(Value::toBool(false));
+			push(TO_BOOL(false));
 			break;
 
 		case OP_POP:
@@ -513,12 +513,12 @@ InterpretResult run()
 		{
 			Value b = pop();
 			Value a = pop();
-			push(Value::toBool(valuesEqual(a, b)));
+			push(TO_BOOL(valuesEqual(a, b)));
 			break;
 		}
 
-		case OP_GREATER: BINARY_OP(Bool, >); break;
-		case OP_LESS: BINARY_OP(Bool, <); break;
+		case OP_GREATER: BINARY_OP(BOOL, >); break;
+		case OP_LESS: BINARY_OP(BOOL, <); break;
 		case OP_ADD:
 		{
 			if (IS_STRING(peek(0)) && IS_STRING(peek(1)))
@@ -529,7 +529,7 @@ InterpretResult run()
 			{
 				double b = AS_NUMBER(pop()); \
 				double a = AS_NUMBER(pop()); \
-				push(Value::toNumber(a + b)); \
+				push(TO_NUMBER(a + b)); \
 			}
 			else
 			{
@@ -538,12 +538,12 @@ InterpretResult run()
 			}
 			break;
 		}
-		case OP_SUBTRACT: BINARY_OP(Number, -); break;
-		case OP_MULTIPLY: BINARY_OP(Number, *); break;
-		case OP_DIVIDE: BINARY_OP(Number, /); break;
+		case OP_SUBTRACT: BINARY_OP(NUMBER, -); break;
+		case OP_MULTIPLY: BINARY_OP(NUMBER, *); break;
+		case OP_DIVIDE: BINARY_OP(NUMBER, /); break;
 
 		case OP_NOT:
-			push(Value::toBool(isFalsey(pop())));
+			push(TO_BOOL(isFalsey(pop())));
 			break;
 
 		case OP_NEGATE: {
@@ -552,7 +552,7 @@ InterpretResult run()
 				runtimeError("Operand must be a number.");
 				return RuntimeError;
 			}
-			push(Value::toNumber(-AS_NUMBER(pop())));
+			push(TO_NUMBER(-AS_NUMBER(pop())));
 			break;
 		}
 
@@ -624,7 +624,7 @@ InterpretResult run()
 		case OP_CLOSURE: {
 			ObjFunction* function = AS_FUNCTION(READ_CONSTANT());
 			ObjClosure* closure = newClosure(function);
-			push(Value::toObj(closure));
+			push(TO_OBJ(closure));
 
 			// 上位値のポインタをオブジェクト配列として保持する
 			for (int i = 0; i < closure->upvalueCount; i++)
@@ -673,7 +673,7 @@ InterpretResult run()
 
 		case OP_CLASS:
 		{
-			push(Value::toObj(newClass(READ_STRING())));
+			push(TO_OBJ(newClass(READ_STRING())));
 			break;
 		}
 
@@ -772,12 +772,12 @@ InterpretResult interpret(const char* source)
 
 	// 確保済みのスタック 0 番に関数オブジェクト自身を格納する
 	// ここで push が必要なのは、ガベージコレクション回避のため
-	push(Value::toObj(function));
+	push(TO_OBJ(function));
 
 	// 新しいフレームとして関数呼び出し
 	ObjClosure* closure = newClosure(function);
 	pop(); // 関数オブジェクトを取り出す
-	push(Value::toObj(closure));
+	push(TO_OBJ(closure));
 	call(closure, 0);
 
 	return run();

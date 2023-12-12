@@ -27,6 +27,11 @@ enum class ValueType
 #define AS_NUMBER(value) ((value).as.number)
 #define AS_OBJ(value) ((value).as.obj)
 
+#define TO_BOOL(value) Value{ValueType::Bool, {.boolean = value} }
+#define TO_NIL() Value{ValueType::Nil, {.number = 0} }
+#define TO_NUMBER(value) Value{ValueType::Number, {.number = value} }
+#define TO_OBJ(value) Value{ValueType::Obj, {.obj = reinterpret_cast<Obj*>(value)} }
+
 struct Value
 {
 	ValueType type;
@@ -35,103 +40,9 @@ struct Value
 		double number;
 		Obj* obj;
 	} as;
-
-	static Value toBool(bool value)
-	{
-		return {
-			.type = ValueType::Bool,
-			.as = { .boolean = value },
-		};
-	}
-
-	static Value toNil()
-	{
-		return {
-			.type = ValueType::Nil,
-			.as = { .number = 0 },
-		};
-	}
-
-	static Value toNumber(double number)
-	{
-		return {
-			.type = ValueType::Number,
-			.as = { .number = number },
-		};
-	}
-
-	static Value toObj(Obj* obj)
-	{
-		return {
-			.type = ValueType::Obj,
-			.as = { .obj = obj },
-		};
-	}
-
-	static Value toObj(ObjClass* obj)
-	{
-		return {
-			.type = ValueType::Obj,
-			.as = { .obj = reinterpret_cast<Obj*>(obj) },
-		};
-	}
-
-	static Value toObj(ObjInstance* obj)
-	{
-		return {
-			.type = ValueType::Obj,
-			.as = { .obj = reinterpret_cast<Obj*>(obj) },
-		};
-	}
-
-	static Value toObj(ObjBoundMethod* obj)
-	{
-		return {
-			.type = ValueType::Obj,
-			.as = { .obj = reinterpret_cast<Obj*>(obj) },
-		};
-	}
-
-	static Value toObj(ObjFunction* obj)
-	{
-		return {
-			.type = ValueType::Obj,
-			.as = { .obj = reinterpret_cast<Obj*>(obj) },
-		};
-	}
-
-	static Value toObj(ObjNative* obj)
-	{
-		return {
-			.type = ValueType::Obj,
-			.as = { .obj = reinterpret_cast<Obj*>(obj) },
-		};
-	}
-
-	static Value toObj(ObjClosure* obj)
-	{
-		return {
-			.type = ValueType::Obj,
-			.as = { .obj = reinterpret_cast<Obj*>(obj) },
-		};
-	}
-
-	static Value toObj(ObjUpvalue* obj)
-	{
-		return {
-			.type = ValueType::Obj,
-			.as = { .obj = reinterpret_cast<Obj*>(obj) },
-		};
-	}
-
-	static Value toObj(ObjString* obj)
-	{
-		return {
-			.type = ValueType::Obj,
-			.as = { .obj = reinterpret_cast<Obj*>(obj) },
-		};
-	}
 };
+
+#endif
 
 void printValue(Value val);
 ObjString* toString(Value val);

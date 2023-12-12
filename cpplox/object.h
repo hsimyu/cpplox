@@ -137,7 +137,7 @@ void writeObjString(Value value, char* buffer, size_t bufferSize);
 
 inline Value toObjValue(ObjString* s)
 {
-	return Value::toObj(reinterpret_cast<Obj*>(s));
+	return TO_OBJ(s);
 }
 
 inline bool isObjType(Value value, ObjType type)

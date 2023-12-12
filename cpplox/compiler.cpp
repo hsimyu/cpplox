@@ -447,7 +447,7 @@ void parsePrecedence(Precedence precedence)
 uint8_t identifierConstant(Token* name)
 {
 	// 変数名を表す文字列を、オブジェクトとして定数表に格納する
-	return makeConstant(Value::toObj(copyString(name->start, name->length)));
+	return makeConstant(TO_OBJ(copyString(name->start, name->length)));
 }
 
 bool identifierEqual(Token* a, Token* b)
@@ -637,7 +637,7 @@ void number()
 {
 	// TODO: std::from_chars のがよい?
 	double value = strtod(parser.previous.start, nullptr);
-	emitConstant(Value::toNumber(value));
+	emitConstant(TO_NUMBER(value));
 }
 
 void str()
@@ -907,7 +907,7 @@ void function(FunctionType type)
 
 	// クロージャと上位値のリストを吐き出す
 	// OP_CLOSURE のサイズは可変になる
-	emitBytes(OP_CLOSURE, makeConstant(Value::toObj(f)));
+	emitBytes(OP_CLOSURE, makeConstant(TO_OBJ(f)));
 	for (int i = 0; i < f->upvalueCount; i++)
 	{
 		emitByte(compiler.upvalues[i].isLocal ? 1 : 0);

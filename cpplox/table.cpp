@@ -51,7 +51,7 @@ void adjustCapacity(Table* table, int capacity)
 	for (int i = 0; i < capacity; i++)
 	{
 		entries[i].key = nullptr;
-		entries[i].value = Value::toNil();
+		entries[i].value = TO_NIL();
 	}
 
 	// 墓標を除いた数を数え直す
@@ -135,7 +135,7 @@ bool tableDelete(Table* table, ObjString* key)
 
 	// エントリに墓標を立てる
 	entry->key = nullptr;
-	entry->value = Value::toBool(true);
+	entry->value = TO_BOOL(true);
 	return true;
 }
 

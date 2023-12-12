@@ -19,11 +19,19 @@ class Zoo {
 var zoo = Zoo();
 var sum = 0;
 var start = clock();
-while (sum < 100000000) {
+var perfCounter = 0;
+var timeCounter = 0;
+var time = clock() - start;
+
+while (time < 10.0) {
     sum = sum + zoo.ant() + zoo.banana() + zoo.tuna() + zoo.hay() + zoo.grass() + zoo.mouse();
+
+    timeCounter = timeCounter + 1;
+    if (timeCounter > 10000) {
+        time = clock() - start;
+        timeCounter = 0;
+        perfCounter = perfCounter + 1;
+    }
 }
 
-print "sum: " + tostring(sum);
-
-var time = clock() - start;
-print "time: " + tostring(time);
+print "Count: " + tostring(perfCounter);

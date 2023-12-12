@@ -2,6 +2,7 @@
 #include "common.h"
 #include "object.h"
 #include "compiler.h"
+#include "vm.h"
 
 #include <stdlib.h>
 

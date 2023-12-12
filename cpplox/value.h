@@ -16,7 +16,8 @@ struct ObjString;
 
 #include <cstring>
 
-#define QUEIT_NAN (static_cast<uint64_t>(0x7ffc'0000'0000'0000))
+#define SIGN_BIT (static_cast<uint64_t>(0x8000'0000'0000'0000))
+#define QNAN (static_cast<uint64_t>(0x7ffc'0000'0000'0000))
 
 #define TAG_NIL 1
 #define TAG_FALSE 2
@@ -24,13 +25,13 @@ struct ObjString;
 
 using Value = uint64_t;
 
-#define IS_NUMBER(value) (((value) & QUEIT_NAN) != QNAN)
+#define IS_NUMBER(value) (((value) & QNAN) != QNAN)
 #define AS_NUMBER(value) valueToNum(value)
 #define TO_NUMBER(value) numToValue(value)
 
-#define NIL_VAL (static_cast<Value>(QUEIT_NAN | TAG_NIL))
-#define FALSE_VAL (static_cast<Value>(QUEIT_NAN | TAG_FALSE))
-#define TRUE_VAL (static_cast<Value>(QUEIT_NAN | TAG_TRUE))
+#define NIL_VAL (static_cast<Value>(QNAN | TAG_NIL))
+#define FALSE_VAL (static_cast<Value>(QNAN | TAG_FALSE))
+#define TRUE_VAL (static_cast<Value>(QNAN | TAG_TRUE))
 
 #define TO_NIL() NIL_VAL
 #define IS_NIL(value) ((value) == NIL_VAL)
@@ -38,6 +39,15 @@ using Value = uint64_t;
 #define IS_BOOL(value) (((value) | 1) == TRUE_VAL)
 #define AS_BOOL(value) ((value) == TRUE_VAL)
 #define TO_BOOL(value) ((value) ? TRUE_VAL : FALSE_VAL)
+
+#define IS_OBJ(value) \
+	(((value) & (QNAN | SIGN_BIT)) == (QNAN | SIGN_BIT))
+
+#define AS_OBJ(value) \
+	reinterpret_cast<Obj*>(static_cast<uintptr_t>(((value) & ~(SIGN_BIT | QNAN))))
+
+#define TO_OBJ(value) \
+	static_cast<Value>(SIGN_BIT | QNAN | static_cast<uint64_t>(reinterpret_cast<uintptr_t>(value)))
 
 inline Value numToValue(double num)
 {

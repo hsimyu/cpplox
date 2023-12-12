@@ -1,5 +1,6 @@
 ﻿#include "common.h"
 
+#include "vm.h"
 #include <cstdio>
 #include <cstdlib>
 

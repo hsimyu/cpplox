@@ -3,14 +3,19 @@
 #include "memory.h"
 #include "object.h"
 #include <cstring>
+#include <cassert>
 
 namespace
 {
 
 Entry* findEntry(Entry* entries, int capacity, ObjString* key)
 {
+	assert((capacity % 2) == 0);
+
 	// open-address hash table
-	uint32_t index = key->hash % capacity;
+	// capacity は常に 2^N なので、capacity - 1 で mod に相当するビットマスクが作れる
+	const auto mask = capacity - 1;
+	uint32_t index = key->hash & mask;
 	Entry* tombstone = nullptr;
 	for (;;) {
 		Entry* entry = &entries[index];
@@ -34,7 +39,8 @@ Entry* findEntry(Entry* entries, int capacity, ObjString* key)
 			// キーを発見した
 			return entry;
 		}
-		index = (index + 1) % capacity;
+
+		index = (index + 1) & mask;
 	}
 }
 
@@ -149,7 +155,8 @@ ObjString* tableFindString(Table* table, const char* chars, int length, uint32_t
 {
 	if (table->count == 0) return nullptr;
 
-	uint32_t index = hash % table->capacity;
+	assert((table->capacity % 2) == 0);
+	uint32_t index = hash & (table->capacity - 1);
 	for (;;)
 	{
 		Entry* entry = &table->entries[index];
@@ -165,7 +172,7 @@ ObjString* tableFindString(Table* table, const char* chars, int length, uint32_t
 			// 所望の文字列を発見したとみなせる
 			return entry->key;
 		}
-		index = (index + 1) % table->capacity;
+		index = (index + 1) & (table->capacity - 1);
 	}
 }
 

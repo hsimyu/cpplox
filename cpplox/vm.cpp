@@ -324,7 +324,7 @@ void concatenate()
 	push(toObjValue(result)); // result
 }
 
-#define VMFETCH() uint8_t instruction = READ_BYTE()
+#define VMFETCH() READ_BYTE()
 #define VMCASE(label) case(label):
 #define VMBREAK() break
 
@@ -364,49 +364,48 @@ InterpretResult run()
 #endif
 
 		using enum InterpretResult;
-		uint8_t instruction = READ_BYTE();
-		switch (instruction)
+		switch (VMFETCH())
 		{
 
-		case OP_CONSTANT: {
+		VMCASE(OP_CONSTANT) {
 			Value constant = READ_CONSTANT();
 			push(constant);
-			break;
+			VMBREAK();
 		}
 
-		case OP_NIL:
+		VMCASE(OP_NIL)
 			push(TO_NIL());
-			break;
+			VMBREAK();
 
-		case OP_TRUE:
+		VMCASE(OP_TRUE)
 			push(TO_BOOL(true));
-			break;
+			VMBREAK();
 
-		case OP_FALSE:
+		VMCASE(OP_FALSE)
 			push(TO_BOOL(false));
-			break;
+			VMBREAK();
 
-		case OP_POP:
+		VMCASE(OP_POP)
 			pop();
-			break;
+			VMBREAK();
 
-		case OP_GET_LOCAL:
+		VMCASE(OP_GET_LOCAL)
 		{
 			// ローカル変数のインデックスはスタックのインデックスと一致している
 			uint8_t slot = READ_BYTE();
 			push(frame->slots[slot]);
-			break;
+			VMBREAK();
 		}
 
-		case OP_SET_LOCAL:
+		VMCASE(OP_SET_LOCAL)
 		{
 			// ローカル変数のインデックスはスタックのインデックスと一致している
 			uint8_t slot = READ_BYTE();
 			frame->slots[slot] = peek(0); // 値がそのまま代入文の評価値になるので、pop() しない
-			break;
+			VMBREAK();
 		}
 
-		case OP_GET_GLOBAL:
+		VMCASE(OP_GET_GLOBAL)
 		{
 			ObjString* name = READ_STRING();
 			Value value;
@@ -415,18 +414,18 @@ InterpretResult run()
 				return RuntimeError;
 			}
 			push(value);
-			break;
+			VMBREAK();
 		}
 
-		case OP_DEFINE_GLOBAL:
+		VMCASE(OP_DEFINE_GLOBAL)
 		{
 			ObjString* name = READ_STRING();
 			tableSet(&vm.globals, name, peek(0));
 			pop();
-			break;
+			VMBREAK();
 		}
 
-		case OP_SET_GLOBAL:
+		VMCASE(OP_SET_GLOBAL)
 		{
 			ObjString* name = READ_STRING();
 			if (tableSet(&vm.globals, name, peek(0)))
@@ -436,24 +435,24 @@ InterpretResult run()
 				runtimeError("Undefined variable '%s'.", name->chars);
 				return RuntimeError;
 			}
-			break;
+			VMBREAK();
 		}
 
-		case OP_GET_UPVALUE:
+		VMCASE(OP_GET_UPVALUE)
 		{
 			uint8_t slot = READ_BYTE();
 			push(*frame->closure->upvalues[slot]->location);
-			break;
+			VMBREAK();
 		}
 
-		case OP_SET_UPVALUE:
+		VMCASE(OP_SET_UPVALUE)
 		{
 			uint8_t slot = READ_BYTE();
 			*frame->closure->upvalues[slot]->location = peek(0);
-			break;
+			VMBREAK();
 		}
 
-		case OP_GET_PROPERTY:
+		VMCASE(OP_GET_PROPERTY)
 		{
 			// アクセス対象の instance がスタックに積まれているはず
 			if (!IS_INSTANCE(peek(0)))
@@ -470,7 +469,7 @@ InterpretResult run()
 			{
 				pop(); // instance
 				push(value);
-				break;
+				VMBREAK();
 			}
 
 			if (!bindMethod(instance->klass, name))
@@ -479,10 +478,10 @@ InterpretResult run()
 				return RuntimeError;
 			}
 
-			break;
+			VMBREAK();
 		}
 
-		case OP_SET_PROPERTY:
+		VMCASE(OP_SET_PROPERTY)
 		{
 			// スタックトップには代入する Value
 			// スタックの 2 番目に代入先の Instance
@@ -498,10 +497,10 @@ InterpretResult run()
 			Value value = pop();
 			pop(); // instance
 			push(value); // 評価値
-			break;
+			VMBREAK();
 		}
 
-		case OP_GET_SUPER:
+		VMCASE(OP_GET_SUPER)
 		{
 			ObjString* name = READ_STRING();
 			ObjClass* superclass = AS_CLASS(pop());
@@ -510,20 +509,20 @@ InterpretResult run()
 				runtimeError("Undefine property '%s'.", name->chars);
 				return RuntimeError;
 			}
-			break;
+			VMBREAK();
 		}
 
-		case OP_EQUAL:
+		VMCASE(OP_EQUAL)
 		{
 			Value b = pop();
 			Value a = pop();
 			push(TO_BOOL(valuesEqual(a, b)));
-			break;
+			VMBREAK();
 		}
 
-		case OP_GREATER: BINARY_OP(BOOL, >); break;
-		case OP_LESS: BINARY_OP(BOOL, <); break;
-		case OP_ADD:
+		VMCASE(OP_GREATER) BINARY_OP(BOOL, >); VMBREAK();
+		VMCASE(OP_LESS) BINARY_OP(BOOL, <); VMBREAK();
+		VMCASE(OP_ADD)
 		{
 			if (IS_STRING(peek(0)) && IS_STRING(peek(1)))
 			{
@@ -540,54 +539,54 @@ InterpretResult run()
 				runtimeError("Operand must be two numbers or two strings.");
 				return InterpretResult::RuntimeError;
 			}
-			break;
+			VMBREAK();
 		}
-		case OP_SUBTRACT: BINARY_OP(NUMBER, -); break;
-		case OP_MULTIPLY: BINARY_OP(NUMBER, *); break;
-		case OP_DIVIDE: BINARY_OP(NUMBER, /); break;
+		VMCASE(OP_SUBTRACT) BINARY_OP(NUMBER, -); VMBREAK();
+		VMCASE(OP_MULTIPLY) BINARY_OP(NUMBER, *); VMBREAK();
+		VMCASE(OP_DIVIDE) BINARY_OP(NUMBER, /); VMBREAK();
 
-		case OP_NOT:
+		VMCASE(OP_NOT)
 			push(TO_BOOL(isFalsey(pop())));
-			break;
+			VMBREAK();
 
-		case OP_NEGATE: {
+		VMCASE(OP_NEGATE) {
 			if (!IS_NUMBER(peek(0)))
 			{
 				runtimeError("Operand must be a number.");
 				return RuntimeError;
 			}
 			push(TO_NUMBER(-AS_NUMBER(pop())));
-			break;
+			VMBREAK();
 		}
 
-		case OP_PRINT: {
+		VMCASE(OP_PRINT) {
 			// stack トップに expression の評価結果が置かれているはず
 			printValue(pop());
 			printf("\n");
-			break;
+			VMBREAK();
 		}
 
-		case OP_JUMP: {
+		VMCASE(OP_JUMP) {
 			// 無条件 jump
 			uint16_t offset = READ_SHORT();
 			frame->ip += offset;
-			break;
+			VMBREAK();
 		}
 
-		case OP_JUMP_IF_FALSE: {
+		VMCASE(OP_JUMP_IF_FALSE) {
 			// false なら jump
 			uint16_t offset = READ_SHORT();
 			if (isFalsey(peek(0))) frame->ip += offset; // then 節をスキップ
-			break;
+			VMBREAK();
 		}
 
-		case OP_LOOP: {
+		VMCASE(OP_LOOP) {
 			uint16_t offset = READ_SHORT();
 			frame->ip -= offset; // back jump
-			break;
+			VMBREAK();
 		}
 
-		case OP_CALL: {
+		VMCASE(OP_CALL) {
 			int argCount = READ_BYTE();
 			if (!callValue(peek(argCount), argCount))
 			{
@@ -596,10 +595,10 @@ InterpretResult run()
 			// 呼び出しが成功したので呼び出し元を frame 変数にキャッシュしておく
 			// NOTE: Native 関数の場合、frame の指し位置は変わらない
 			frame = &vm.frames[vm.frameCount - 1];
-			break;
+			VMBREAK();
 		}
 
-		case OP_INVOKE:
+		VMCASE(OP_INVOKE)
 		{
 			ObjString* method = READ_STRING();
 			int argCount = READ_BYTE();
@@ -608,10 +607,10 @@ InterpretResult run()
 				return RuntimeError;
 			}
 			frame = &vm.frames[vm.frameCount - 1];
-			break;
+			VMBREAK();
 		}
 
-		case OP_SUPER_INVOKE:
+		VMCASE(OP_SUPER_INVOKE)
 		{
 			ObjString* method = READ_STRING();
 			int argCount = READ_BYTE();
@@ -622,10 +621,10 @@ InterpretResult run()
 				return RuntimeError;
 			}
 			frame = &vm.frames[vm.frameCount - 1];
-			break;
+			VMBREAK();
 		}
 
-		case OP_CLOSURE: {
+		VMCASE(OP_CLOSURE) {
 			ObjFunction* function = AS_FUNCTION(READ_CONSTANT());
 			ObjClosure* closure = newClosure(function);
 			push(TO_OBJ(closure));
@@ -647,17 +646,17 @@ InterpretResult run()
 					closure->upvalues[i] = frame->closure->upvalues[index];
 				}
 			}
-			break;
+			VMBREAK();
 		}
 
-		case OP_CLOSE_UPVALUE:
+		VMCASE(OP_CLOSE_UPVALUE)
 		{
 			closeUpvalues(vm.stackTop - 1);
 			pop();
-			break;
+			VMBREAK();
 		}
 
-		case OP_RETURN: {
+		VMCASE(OP_RETURN) {
 			Value result = pop();
 			closeUpvalues(frame->slots);
 			vm.frameCount--;
@@ -672,16 +671,16 @@ InterpretResult run()
 			push(result);
 			frame = &vm.frames[vm.frameCount - 1]; // 呼び出し元フレームを一つ上に
 			// frame が書き換わることで、関数呼び出し位置の ip から実行が再開する
-			break;
+			VMBREAK();
 		}
 
-		case OP_CLASS:
+		VMCASE(OP_CLASS)
 		{
 			push(TO_OBJ(newClass(READ_STRING())));
-			break;
+			VMBREAK();
 		}
 
-		case OP_INHERIT:
+		VMCASE(OP_INHERIT)
 		{
 			Value superClass = peek(1);
 			if (!IS_CLASS(superClass))
@@ -694,18 +693,17 @@ InterpretResult run()
 			// 親クラスのメソッドを全て子クラスに突っ込む
 			tableAddAll(&AS_CLASS(superClass)->methods, &subClass->methods);
 			pop();
-			break;
+			VMBREAK();
 		}
 
-		case OP_METHOD:
+		VMCASE(OP_METHOD)
 		{
 			defineMethod(READ_STRING());
-			break;
+			VMBREAK();
 		}
 
 		default:
 			return RuntimeError;
-
 		}
 	}
 

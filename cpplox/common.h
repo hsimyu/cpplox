@@ -3,6 +3,7 @@
 #include <cstdint>
 
 #define NAN_BOXING 1
+#define USE_JUMP_TABLE 1
 
 #if _DEBUG
 #define DEBUG_PRINT_CODE 0

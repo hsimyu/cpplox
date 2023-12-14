@@ -324,6 +324,10 @@ void concatenate()
 	push(toObjValue(result)); // result
 }
 
+#define VMFETCH() uint8_t instruction = READ_BYTE()
+#define VMCASE(label) case(label):
+#define VMBREAK() break
+
 InterpretResult run()
 {
 	CallFrame* frame = &vm.frames[vm.frameCount - 1];

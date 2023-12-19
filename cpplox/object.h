@@ -6,6 +6,8 @@
 #include "value.h"
 #include "table.h"
 
+struct Thread;
+
 #define OBJ_TYPE(value) (AS_OBJ(value)->type)
 
 #define IS_CLASS(value) isObjType(value, ObjType::Class)
@@ -33,6 +35,9 @@
 #define AS_STRING(value) (reinterpret_cast<ObjString*>(AS_OBJ(value)))
 #define AS_CSTRING(value) (reinterpret_cast<ObjString*>(AS_OBJ(value))->chars)
 
+#define IS_THREAD(value) isObjType(value, ObjType::Thread)
+#define AS_THREAD(value) (reinterpret_cast<ObjThread*>(AS_OBJ(value)))
+
 enum class ObjType
 {
 	Class,
@@ -43,6 +48,7 @@ enum class ObjType
 	Closure,
 	Upvalue,
 	String,
+	Thread,
 };
 
 struct Obj
@@ -130,6 +136,14 @@ struct ObjBoundMethod
 };
 
 ObjBoundMethod* newBoundMethod(Value receiver, ObjClosure* method);
+
+struct ObjThread
+{
+	Obj obj;
+	Thread* thread = nullptr;
+};
+
+ObjThread* newThread(Thread* thread);
 
 void freeObject(Obj* obj);
 void printObject(Value value);

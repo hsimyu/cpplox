@@ -93,6 +93,13 @@ ObjBoundMethod* newBoundMethod(Value receiver, ObjClosure* method)
 	return bound;
 }
 
+ObjThread* newThread(Thread* thread)
+{
+	ObjThread* t = allocateObject<ObjThread>(ObjType::Thread);
+	t->thread = thread;
+	return t;
+}
+
 ObjFunction* newFunction()
 {
 	ObjFunction* f = allocateObject<ObjFunction>(ObjType::Function);
@@ -238,6 +245,15 @@ void freeObject(Obj* obj)
 		break;
 	}
 
+	case Thread:
+	{
+		ObjThread* t = reinterpret_cast<ObjThread*>(obj);
+		freeThread(t->thread);
+		free(t);
+		break;
+
+	}
+
 	}
 }
 
@@ -269,6 +285,9 @@ void printObject(Value value)
 		break;
 	case String:
 		printf("%s", AS_CSTRING(value));
+		break;
+	case Thread:
+		printf("thread");
 		break;
 	}
 }
@@ -340,6 +359,11 @@ void writeObjString(Value value, char* buffer, size_t bufferSize)
 	case String:
 	{
 		snprintf(buffer, bufferSize, "%s", AS_CSTRING(value));
+		break;
+	}
+	case Thread:
+	{
+		snprintf(buffer, bufferSize, "thread");
 		break;
 	}
 	}

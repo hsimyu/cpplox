@@ -733,6 +733,11 @@ void initThread(Thread* thread)
 	resetStack(thread);
 }
 
+void freeThread(Thread* thread)
+{
+	free(thread);
+}
+
 void initVM()
 {
 	initThread(&vm.mainThread);

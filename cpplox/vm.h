@@ -30,6 +30,7 @@ struct Thread
 	ObjUpvalue* openUpvalues = nullptr;
 };
 void initThread(Thread* thread);
+void freeThread(Thread* thread);
 
 struct VM
 {

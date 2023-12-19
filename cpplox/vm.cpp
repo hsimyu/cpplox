@@ -731,8 +731,7 @@ void freeObjects()
 
 void initThread(Thread* thread)
 {
-	thread->frameCount = 0;
-	thread->stackTop = nullptr;
+	resetStack(thread);
 }
 
 void initVM()

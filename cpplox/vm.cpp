@@ -41,7 +41,7 @@ Value peek(int distance)
 	return vm.mainThread.stackTop[-1 - distance];
 }
 
-bool call(ObjClosure* closure, int argCount)
+bool call(Thread* thread, ObjClosure* closure, int argCount)
 {
 	if (argCount != closure->function->arity)
 	{
@@ -49,24 +49,24 @@ bool call(ObjClosure* closure, int argCount)
 		return false;
 	}
 
-	if (vm.mainThread.frameCount == FRAMES_MAX)
+	if (thread->frameCount == FRAMES_MAX)
 	{
 		runtimeError("Stack overflow.");
 		return false;
 	}
 
-	CallFrame* frame = &vm.mainThread.frames[vm.mainThread.frameCount++];
+	CallFrame* frame = &thread->frames[thread->frameCount++];
 	frame->closure = closure;
 	frame->ip = closure->function->chunk.code;
 
 	// stack 中に乗っている引数の数を引いた位置が、frame が参照するスタックの開始位置になる
 	// argCount + 1 なのは、予約分の 0 番の分
-	frame->slots = vm.mainThread.stackTop - (argCount + 1);
+	frame->slots = thread->stackTop - (argCount + 1);
 
 	return true;
 }
 
-bool callValue(Value callee, int argCount)
+bool callValue(Thread* thread, Value callee, int argCount)
 {
 	if (IS_OBJ(callee))
 	{
@@ -76,19 +76,19 @@ bool callValue(Value callee, int argCount)
 		{
 			ObjBoundMethod* bound = AS_BOUND_METHOD(callee);
 			// メソッド呼び出しのスロット 0 (予約) にインスタンスを差し込む
-			vm.mainThread.stackTop[-argCount - 1] = bound->receiver;
-			return call(bound->method, argCount);
+			thread->stackTop[-argCount - 1] = bound->receiver;
+			return call(thread, bound->method, argCount);
 		}
 		case ObjType::Class:
 		{
 			ObjClass* klass = AS_CLASS(callee);
-			vm.mainThread.stackTop[-argCount - 1] = TO_OBJ(newInstance(klass));
+			thread->stackTop[-argCount - 1] = TO_OBJ(newInstance(klass));
 
 			Value initializer;
 			if (tableGet(&klass->methods, vm.initString, &initializer))
 			{
 				// "init" 関数があればそれを初期化子として呼び出す
-				return call(AS_CLOSURE(initializer), argCount);
+				return call(thread, AS_CLOSURE(initializer), argCount);
 			}
 			else if (argCount != 0)
 			{
@@ -100,13 +100,13 @@ bool callValue(Value callee, int argCount)
 		}
 		// All ObjType::Function are wrapped as closure
 		case ObjType::Closure:
-			return call(AS_CLOSURE(callee), argCount);
+			return call(thread, AS_CLOSURE(callee), argCount);
 		case ObjType::Native:
 		{
 			// Native 関数呼び出しの場合は、ここで即座に呼び出す
 			NativeFn native = AS_NATIVE(callee)->function;
-			Value result = native(argCount, vm.mainThread.stackTop - argCount);
-			vm.mainThread.stackTop -= argCount + 1;
+			Value result = native(argCount, thread->stackTop - argCount);
+			thread->stackTop -= argCount + 1;
 			push(result);
 			return true;
 		}
@@ -119,7 +119,7 @@ bool callValue(Value callee, int argCount)
 	return false;
 }
 
-bool invokeFromClass(ObjClass* klass, ObjString* name, int argCount)
+bool invokeFromClass(Thread* thread, ObjClass* klass, ObjString* name, int argCount)
 {
 	Value method;
 	if (!tableGet(&klass->methods, name, &method))
@@ -127,10 +127,10 @@ bool invokeFromClass(ObjClass* klass, ObjString* name, int argCount)
 		runtimeError("Undefine property '%s'.", name->chars);
 		return false;
 	}
-	return call(AS_CLOSURE(method), argCount);
+	return call(thread, AS_CLOSURE(method), argCount);
 }
 
-bool invoke(ObjString* name, int argCount)
+bool invoke(Thread* thread, ObjString* name, int argCount)
 {
 	Value receiver = peek(argCount); // インスタンスが入っている位置を狙う
 	if (!IS_INSTANCE(receiver))
@@ -145,11 +145,11 @@ bool invoke(ObjString* name, int argCount)
 	if (tableGet(&instance->fields, name, &value))
 	{
 		// プロパティがフィールドだった場合はそれを普通の関数として呼び出す
-		vm.mainThread.stackTop[-argCount - 1] = value;
-		return callValue(value, argCount);
+		thread->stackTop[-argCount - 1] = value;
+		return callValue(thread, value, argCount);
 	}
 
-	return invokeFromClass(instance->klass, name, argCount);
+	return invokeFromClass(thread, instance->klass, name, argCount);
 }
 
 bool bindMethod(ObjClass* klass, ObjString* name)
@@ -326,9 +326,9 @@ void concatenate()
 	push(toObjValue(result)); // result
 }
 
-InterpretResult run()
+InterpretResult run(Thread* thread)
 {
-	CallFrame* frame = &vm.mainThread.frames[vm.mainThread.frameCount - 1];
+	CallFrame* frame = &thread->frames[thread->frameCount - 1];
 
 #define READ_BYTE() (*frame->ip++)
 
@@ -351,7 +351,7 @@ InterpretResult run()
 	{
 #if DEBUG_TRACE_EXECUTION
 		printf("          ");
-		for (Value* slot = vm.mainThread.stack; slot < vm.mainThread.stackTop; slot++)
+		for (Value* slot = thread->stack; slot < thread->stackTop; slot++)
 		{
 			printf("[ ");
 			printValue(*slot);
@@ -587,13 +587,13 @@ InterpretResult run()
 
 		case OP_CALL: {
 			int argCount = READ_BYTE();
-			if (!callValue(peek(argCount), argCount))
+			if (!callValue(thread, peek(argCount), argCount))
 			{
 				return RuntimeError;
 			}
 			// 呼び出しが成功したので呼び出し元を frame 変数にキャッシュしておく
 			// NOTE: Native 関数の場合、frame の指し位置は変わらない
-			frame = &vm.mainThread.frames[vm.mainThread.frameCount - 1];
+			frame = &thread->frames[thread->frameCount - 1];
 			break;
 		}
 
@@ -601,11 +601,11 @@ InterpretResult run()
 		{
 			ObjString* method = READ_STRING();
 			int argCount = READ_BYTE();
-			if (!invoke(method, argCount))
+			if (!invoke(thread, method, argCount))
 			{
 				return RuntimeError;
 			}
-			frame = &vm.mainThread.frames[vm.mainThread.frameCount - 1];
+			frame = &thread->frames[thread->frameCount - 1];
 			break;
 		}
 
@@ -615,11 +615,11 @@ InterpretResult run()
 			int argCount = READ_BYTE();
 			ObjClass* superclass = AS_CLASS(pop());
 			// super クラスのメソッド呼び出し時は、フィールドを探索しなくていいのでメソッドとして直接呼び出ししてよい
-			if (!invokeFromClass(superclass, method, argCount))
+			if (!invokeFromClass(thread, superclass, method, argCount))
 			{
 				return RuntimeError;
 			}
-			frame = &vm.mainThread.frames[vm.mainThread.frameCount - 1];
+			frame = &thread->frames[thread->frameCount - 1];
 			break;
 		}
 
@@ -650,7 +650,7 @@ InterpretResult run()
 
 		case OP_CLOSE_UPVALUE:
 		{
-			closeUpvalues(vm.mainThread.stackTop - 1);
+			closeUpvalues(thread->stackTop - 1);
 			pop();
 			break;
 		}
@@ -658,17 +658,17 @@ InterpretResult run()
 		case OP_RETURN: {
 			Value result = pop();
 			closeUpvalues(frame->slots);
-			vm.mainThread.frameCount--;
-			if (vm.mainThread.frameCount == 0)
+			thread->frameCount--;
+			if (thread->frameCount == 0)
 			{
 				// 実行終了
 				pop();
 				return Ok;
 			}
 
-			vm.mainThread.stackTop = frame->slots; // スタックを復元
+			thread->stackTop = frame->slots; // スタックを復元
 			push(result);
-			frame = &vm.mainThread.frames[vm.mainThread.frameCount - 1]; // 呼び出し元フレームを一つ上に
+			frame = &thread->frames[thread->frameCount - 1]; // 呼び出し元フレームを一つ上に
 			// frame が書き換わることで、関数呼び出し位置の ip から実行が再開する
 			break;
 		}
@@ -786,9 +786,9 @@ InterpretResult interpret(const char* source)
 	ObjClosure* closure = newClosure(function);
 	pop(); // 関数オブジェクトを取り出す
 	push(TO_OBJ(closure));
-	call(closure, 0);
+	call(&vm.mainThread, closure, 0);
 
-	return run();
+	return run(&vm.mainThread);
 }
 
 void push(Value value)

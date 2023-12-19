@@ -39,9 +39,9 @@ ObjString* allocateString(char* chars, int length, uint32_t hash)
 
 	// 文字列の intern 化
 	// Value はなんでもいいので nil を入れる
-	push(TO_OBJ(s)); // GC 回避
+	push(&getVM()->mainThread, TO_OBJ(s)); // GC 回避
 	tableSet(&getVM()->strings, s, TO_NIL());
-	pop();
+	pop(&getVM()->mainThread);
 	return s;
 }
 

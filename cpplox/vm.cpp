@@ -34,24 +34,24 @@ Value toStringNative(int argCount, Value* args)
 namespace
 {
 
-void runtimeError(const char* format, ...);
+void runtimeError(Thread* thread, const char* format, ...);
 
-Value peek(int distance)
+Value peek(Thread* thread, int distance)
 {
-	return vm.mainThread.stackTop[-1 - distance];
+	return thread->stackTop[-1 - distance];
 }
 
 bool call(Thread* thread, ObjClosure* closure, int argCount)
 {
 	if (argCount != closure->function->arity)
 	{
-		runtimeError("Expected %d arguments but got %d.", closure->function->arity, argCount);
+		runtimeError(thread, "Expected %d arguments but got %d.", closure->function->arity, argCount);
 		return false;
 	}
 
 	if (thread->frameCount == FRAMES_MAX)
 	{
-		runtimeError("Stack overflow.");
+		runtimeError(thread, "Stack overflow.");
 		return false;
 	}
 
@@ -93,7 +93,7 @@ bool callValue(Thread* thread, Value callee, int argCount)
 			else if (argCount != 0)
 			{
 				// "init" が定義されていないのに引数が渡されていた場合はエラーにする
-				runtimeError("Expected 0 arguments but got %d.", argCount);
+				runtimeError(thread, "Expected 0 arguments but got %d.", argCount);
 				return false;
 			}
 			return true;
@@ -107,7 +107,7 @@ bool callValue(Thread* thread, Value callee, int argCount)
 			NativeFn native = AS_NATIVE(callee)->function;
 			Value result = native(argCount, thread->stackTop - argCount);
 			thread->stackTop -= argCount + 1;
-			push(result);
+			push(thread, result);
 			return true;
 		}
 		default:
@@ -115,7 +115,7 @@ bool callValue(Thread* thread, Value callee, int argCount)
 			break;
 		}
 	}
-	runtimeError("Can only call functions and classes.");
+	runtimeError(thread, "Can only call functions and classes.");
 	return false;
 }
 
@@ -124,7 +124,7 @@ bool invokeFromClass(Thread* thread, ObjClass* klass, ObjString* name, int argCo
 	Value method;
 	if (!tableGet(&klass->methods, name, &method))
 	{
-		runtimeError("Undefine property '%s'.", name->chars);
+		runtimeError(thread, "Undefine property '%s'.", name->chars);
 		return false;
 	}
 	return call(thread, AS_CLOSURE(method), argCount);
@@ -132,10 +132,10 @@ bool invokeFromClass(Thread* thread, ObjClass* klass, ObjString* name, int argCo
 
 bool invoke(Thread* thread, ObjString* name, int argCount)
 {
-	Value receiver = peek(argCount); // インスタンスが入っている位置を狙う
+	Value receiver = peek(thread, argCount); // インスタンスが入っている位置を狙う
 	if (!IS_INSTANCE(receiver))
 	{
-		runtimeError("Only instances have methods.");
+		runtimeError(thread, "Only instances have methods.");
 		return false;
 	}
 
@@ -152,7 +152,7 @@ bool invoke(Thread* thread, ObjString* name, int argCount)
 	return invokeFromClass(thread, instance->klass, name, argCount);
 }
 
-bool bindMethod(ObjClass* klass, ObjString* name)
+bool bindMethod(Thread* thread, ObjClass* klass, ObjString* name)
 {
 	Value method;
 	if (!tableGet(&klass->methods, name, &method))
@@ -161,9 +161,9 @@ bool bindMethod(ObjClass* klass, ObjString* name)
 	}
 
 	// スタックトップにバインド対象のインスタンスがいるはず
-	ObjBoundMethod* bound = newBoundMethod(peek(0), AS_CLOSURE(method));
-	pop(); // instance
-	push(TO_OBJ(bound));
+	ObjBoundMethod* bound = newBoundMethod(peek(thread, 0), AS_CLOSURE(method));
+	pop(thread); // instance
+	push(thread, TO_OBJ(bound));
 	return true;
 }
 
@@ -216,13 +216,13 @@ void closeUpvalues(Value* last)
 	}
 }
 
-void defineMethod(ObjString* methodName)
+void defineMethod(Thread* thread, ObjString* methodName)
 {
 	// 型チェックはコンパイル時に行われているので不要
-	Value method = peek(0); // ObjClosure* のはず
-	ObjClass* klass = AS_CLASS(peek(1));
+	Value method = peek(thread, 0); // ObjClosure* のはず
+	ObjClass* klass = AS_CLASS(peek(thread, 1));
 	tableSet(&klass->methods, methodName, method);
-	pop(); // method を pop
+	pop(thread); // method を pop
 }
 
 void resetStack(Thread* thread)
@@ -234,7 +234,7 @@ void resetStack(Thread* thread)
 	vm.openUpvalues = nullptr;
 }
 
-void runtimeError(const char* format, ...)
+void runtimeError(Thread* thread, const char* format, ...)
 {
 	va_list args;
 	va_start(args, format);
@@ -244,9 +244,9 @@ void runtimeError(const char* format, ...)
 	fputs("\n", stderr);
 
 	// print stack trace
-	for (int i = vm.mainThread.frameCount - 1; i >= 0; i--)
+	for (int i = thread->frameCount - 1; i >= 0; i--)
 	{
-		CallFrame* frame = &vm.mainThread.frames[i];
+		CallFrame* frame = &thread->frames[i];
 		ObjFunction* function = frame->closure->function;
 
 		size_t instruction = frame->ip - function->chunk.code - 1;
@@ -262,7 +262,7 @@ void runtimeError(const char* format, ...)
 		}
 	}
 
-	CallFrame* frame = &vm.mainThread.frames[vm.mainThread.frameCount - 1];
+	CallFrame* frame = &thread->frames[thread->frameCount - 1];
 
 	// コードを読んだあとに ip++ されているので、エラーを起こしたのは現在実行しているコードの一つ前になる
 	ObjFunction* function = frame->closure->function;
@@ -270,32 +270,33 @@ void runtimeError(const char* format, ...)
 	int line = function->chunk.lines[instruction];
 	fprintf(stderr, "[line %d] in script\n", line);
 
-	resetStack(&vm.mainThread);
+	resetStack(thread);
 }
 
 void defineNative(const char* name, NativeFn function)
 {
+	// ネイティブ関数定義はとりあえずメインスレッドを使う
 	// 割当てたオブジェクトが即座に GC の対象になったりしないように、スタックに入れておく
-	push(TO_OBJ(copyString(name, static_cast<int>(strlen(name)))));
-	push(TO_OBJ(newNative(function)));
+	push(&vm.mainThread, TO_OBJ(copyString(name, static_cast<int>(strlen(name)))));
+	push(&vm.mainThread, TO_OBJ(newNative(function)));
 
 	// ネイティブ関数は global に入れる
 	// TODO: ここでスタックは空になっている前提で合っている？
 	tableSet(&vm.globals, AS_STRING(vm.mainThread.stack[0]), vm.mainThread.stack[1]);
 
-	pop();
-	pop();
+	pop(&vm.mainThread);
+	pop(&vm.mainThread);
 }
 
 #define BINARY_OP(ValueType, op) \
 	do { \
-        if (!IS_NUMBER(peek(0)) || !IS_NUMBER(peek(1))) { \
-            runtimeError("Operand must be numbers."); \
+        if (!IS_NUMBER(peek(thread, 0)) || !IS_NUMBER(peek(thread, 1))) { \
+            runtimeError(thread, "Operand must be numbers."); \
             return InterpretResult::RuntimeError; \
         } \
-		double b = AS_NUMBER(pop()); \
-		double a = AS_NUMBER(pop()); \
-		push(TO_##ValueType(a op b)); \
+		double b = AS_NUMBER(pop(thread)); \
+		double a = AS_NUMBER(pop(thread)); \
+		push(thread, TO_##ValueType(a op b)); \
 	} while (false)
 
 bool isFalsey(Value value)
@@ -307,12 +308,12 @@ bool isFalsey(Value value)
 	return IS_NIL(value) || (IS_BOOL(value) && !AS_BOOL(value));
 }
 
-void concatenate()
+void concatenate(Thread* thread)
 {
 	// ここでスタックから文字列オブジェクトを取り出してしまうと、次の allocate 時に回収される可能性がある
 	// 処理が完了するまでは peek() で参照する
-	ObjString* b = AS_STRING(peek(0));
-	ObjString* a = AS_STRING(peek(1));
+	ObjString* b = AS_STRING(peek(thread, 0));
+	ObjString* a = AS_STRING(peek(thread, 1));
 
 	int length = a->length + b->length;
 	char* chars = allocate<char>(length + 1);
@@ -321,9 +322,9 @@ void concatenate()
 	chars[length] = '\0';
 
 	ObjString* result = takeString(chars, length);
-	pop(); // b
-	pop(); // a
-	push(toObjValue(result)); // result
+	pop(thread); // b
+	pop(thread); // a
+	push(thread, toObjValue(result)); // result
 }
 
 InterpretResult run(Thread* thread)
@@ -368,31 +369,31 @@ InterpretResult run(Thread* thread)
 
 		case OP_CONSTANT: {
 			Value constant = READ_CONSTANT();
-			push(constant);
+			push(thread, constant);
 			break;
 		}
 
 		case OP_NIL:
-			push(TO_NIL());
+			push(thread, TO_NIL());
 			break;
 
 		case OP_TRUE:
-			push(TO_BOOL(true));
+			push(thread, TO_BOOL(true));
 			break;
 
 		case OP_FALSE:
-			push(TO_BOOL(false));
+			push(thread, TO_BOOL(false));
 			break;
 
 		case OP_POP:
-			pop();
+			pop(thread);
 			break;
 
 		case OP_GET_LOCAL:
 		{
 			// ローカル変数のインデックスはスタックのインデックスと一致している
 			uint8_t slot = READ_BYTE();
-			push(frame->slots[slot]);
+			push(thread, frame->slots[slot]);
 			break;
 		}
 
@@ -400,7 +401,7 @@ InterpretResult run(Thread* thread)
 		{
 			// ローカル変数のインデックスはスタックのインデックスと一致している
 			uint8_t slot = READ_BYTE();
-			frame->slots[slot] = peek(0); // 値がそのまま代入文の評価値になるので、pop() しない
+			frame->slots[slot] = peek(thread, 0); // 値がそのまま代入文の評価値になるので、pop() しない
 			break;
 		}
 
@@ -409,29 +410,29 @@ InterpretResult run(Thread* thread)
 			ObjString* name = READ_STRING();
 			Value value;
 			if (!tableGet(&vm.globals, name, &value)) {
-				runtimeError("Undefined variable '%s'.", name->chars);
+				runtimeError(thread, "Undefined variable '%s'.", name->chars);
 				return RuntimeError;
 			}
-			push(value);
+			push(thread, value);
 			break;
 		}
 
 		case OP_DEFINE_GLOBAL:
 		{
 			ObjString* name = READ_STRING();
-			tableSet(&vm.globals, name, peek(0));
-			pop();
+			tableSet(&vm.globals, name, peek(thread, 0));
+			pop(thread);
 			break;
 		}
 
 		case OP_SET_GLOBAL:
 		{
 			ObjString* name = READ_STRING();
-			if (tableSet(&vm.globals, name, peek(0)))
+			if (tableSet(&vm.globals, name, peek(thread, 0)))
 			{
 				// "新しいキーだったら" ランタイムエラーにする
 				tableDelete(&vm.globals, name);
-				runtimeError("Undefined variable '%s'.", name->chars);
+				runtimeError(thread, "Undefined variable '%s'.", name->chars);
 				return RuntimeError;
 			}
 			break;
@@ -440,40 +441,40 @@ InterpretResult run(Thread* thread)
 		case OP_GET_UPVALUE:
 		{
 			uint8_t slot = READ_BYTE();
-			push(*frame->closure->upvalues[slot]->location);
+			push(thread, *frame->closure->upvalues[slot]->location);
 			break;
 		}
 
 		case OP_SET_UPVALUE:
 		{
 			uint8_t slot = READ_BYTE();
-			*frame->closure->upvalues[slot]->location = peek(0);
+			*frame->closure->upvalues[slot]->location = peek(thread, 0);
 			break;
 		}
 
 		case OP_GET_PROPERTY:
 		{
 			// アクセス対象の instance がスタックに積まれているはず
-			if (!IS_INSTANCE(peek(0)))
+			if (!IS_INSTANCE(peek(thread, 0)))
 			{
-				runtimeError("Only instances have properties.");
+				runtimeError(thread, "Only instances have properties.");
 				return RuntimeError;
 			}
 
-			ObjInstance* instance = AS_INSTANCE(peek(0));
+			ObjInstance* instance = AS_INSTANCE(peek(thread, 0));
 			ObjString* name = READ_STRING();
 
 			Value value;
 			if (tableGet(&instance->fields, name, &value))
 			{
-				pop(); // instance
-				push(value);
+				pop(thread); // instance
+				push(thread, value);
 				break;
 			}
 
-			if (!bindMethod(instance->klass, name))
+			if (!bindMethod(thread, instance->klass, name))
 			{
-				runtimeError("Undefine property '%s'.", name->chars);
+				runtimeError(thread, "Undefine property '%s'.", name->chars);
 				return RuntimeError;
 			}
 
@@ -484,28 +485,28 @@ InterpretResult run(Thread* thread)
 		{
 			// スタックトップには代入する Value
 			// スタックの 2 番目に代入先の Instance
-			if (!IS_INSTANCE(peek(1)))
+			if (!IS_INSTANCE(peek(thread, 1)))
 			{
-				runtimeError("Only instances have fields.");
+				runtimeError(thread, "Only instances have fields.");
 				return RuntimeError;
 			}
 
-			ObjInstance* instance = AS_INSTANCE(peek(1));
-			tableSet(&instance->fields, READ_STRING(), peek(0));
+			ObjInstance* instance = AS_INSTANCE(peek(thread, 1));
+			tableSet(&instance->fields, READ_STRING(), peek(thread, 0));
 
-			Value value = pop();
-			pop(); // instance
-			push(value); // 評価値
+			Value value = pop(thread);
+			pop(thread); // instance
+			push(thread, value); // 評価値
 			break;
 		}
 
 		case OP_GET_SUPER:
 		{
 			ObjString* name = READ_STRING();
-			ObjClass* superclass = AS_CLASS(pop());
-			if (!bindMethod(superclass, name))
+			ObjClass* superclass = AS_CLASS(pop(thread));
+			if (!bindMethod(thread, superclass, name))
 			{
-				runtimeError("Undefine property '%s'.", name->chars);
+				runtimeError(thread, "Undefine property '%s'.", name->chars);
 				return RuntimeError;
 			}
 			break;
@@ -513,9 +514,9 @@ InterpretResult run(Thread* thread)
 
 		case OP_EQUAL:
 		{
-			Value b = pop();
-			Value a = pop();
-			push(TO_BOOL(valuesEqual(a, b)));
+			Value b = pop(thread);
+			Value a = pop(thread);
+			push(thread, TO_BOOL(valuesEqual(a, b)));
 			break;
 		}
 
@@ -523,19 +524,19 @@ InterpretResult run(Thread* thread)
 		case OP_LESS: BINARY_OP(BOOL, <); break;
 		case OP_ADD:
 		{
-			if (IS_STRING(peek(0)) && IS_STRING(peek(1)))
+			if (IS_STRING(peek(thread, 0)) && IS_STRING(peek(thread, 1)))
 			{
-				concatenate();
+				concatenate(thread);
 			}
-			else if (IS_NUMBER(peek(0)) && IS_NUMBER(peek(1)))
+			else if (IS_NUMBER(peek(thread, 0)) && IS_NUMBER(peek(thread, 1)))
 			{
-				double b = AS_NUMBER(pop()); \
-				double a = AS_NUMBER(pop()); \
-				push(TO_NUMBER(a + b)); \
+				double b = AS_NUMBER(pop(thread));
+				double a = AS_NUMBER(pop(thread));
+				push(thread, TO_NUMBER(a + b));
 			}
 			else
 			{
-				runtimeError("Operand must be two numbers or two strings.");
+				runtimeError(thread, "Operand must be two numbers or two strings.");
 				return InterpretResult::RuntimeError;
 			}
 			break;
@@ -545,22 +546,22 @@ InterpretResult run(Thread* thread)
 		case OP_DIVIDE: BINARY_OP(NUMBER, /); break;
 
 		case OP_NOT:
-			push(TO_BOOL(isFalsey(pop())));
+			push(thread, TO_BOOL(isFalsey(pop(thread))));
 			break;
 
 		case OP_NEGATE: {
-			if (!IS_NUMBER(peek(0)))
+			if (!IS_NUMBER(peek(thread, 0)))
 			{
-				runtimeError("Operand must be a number.");
+				runtimeError(thread, "Operand must be a number.");
 				return RuntimeError;
 			}
-			push(TO_NUMBER(-AS_NUMBER(pop())));
+			push(thread, TO_NUMBER(-AS_NUMBER(pop(thread))));
 			break;
 		}
 
 		case OP_PRINT: {
 			// stack トップに expression の評価結果が置かれているはず
-			printValue(pop());
+			printValue(pop(thread));
 			printf("\n");
 			break;
 		}
@@ -575,7 +576,7 @@ InterpretResult run(Thread* thread)
 		case OP_JUMP_IF_FALSE: {
 			// false なら jump
 			uint16_t offset = READ_SHORT();
-			if (isFalsey(peek(0))) frame->ip += offset; // then 節をスキップ
+			if (isFalsey(peek(thread, 0))) frame->ip += offset; // then 節をスキップ
 			break;
 		}
 
@@ -587,7 +588,7 @@ InterpretResult run(Thread* thread)
 
 		case OP_CALL: {
 			int argCount = READ_BYTE();
-			if (!callValue(thread, peek(argCount), argCount))
+			if (!callValue(thread, peek(thread, argCount), argCount))
 			{
 				return RuntimeError;
 			}
@@ -613,7 +614,7 @@ InterpretResult run(Thread* thread)
 		{
 			ObjString* method = READ_STRING();
 			int argCount = READ_BYTE();
-			ObjClass* superclass = AS_CLASS(pop());
+			ObjClass* superclass = AS_CLASS(pop(thread));
 			// super クラスのメソッド呼び出し時は、フィールドを探索しなくていいのでメソッドとして直接呼び出ししてよい
 			if (!invokeFromClass(thread, superclass, method, argCount))
 			{
@@ -626,7 +627,7 @@ InterpretResult run(Thread* thread)
 		case OP_CLOSURE: {
 			ObjFunction* function = AS_FUNCTION(READ_CONSTANT());
 			ObjClosure* closure = newClosure(function);
-			push(TO_OBJ(closure));
+			push(thread, TO_OBJ(closure));
 
 			// 上位値のポインタをオブジェクト配列として保持する
 			for (int i = 0; i < closure->upvalueCount; i++)
@@ -651,23 +652,23 @@ InterpretResult run(Thread* thread)
 		case OP_CLOSE_UPVALUE:
 		{
 			closeUpvalues(thread->stackTop - 1);
-			pop();
+			pop(thread);
 			break;
 		}
 
 		case OP_RETURN: {
-			Value result = pop();
+			Value result = pop(thread);
 			closeUpvalues(frame->slots);
 			thread->frameCount--;
 			if (thread->frameCount == 0)
 			{
 				// 実行終了
-				pop();
+				pop(thread);
 				return Ok;
 			}
 
 			thread->stackTop = frame->slots; // スタックを復元
-			push(result);
+			push(thread, result);
 			frame = &thread->frames[thread->frameCount - 1]; // 呼び出し元フレームを一つ上に
 			// frame が書き換わることで、関数呼び出し位置の ip から実行が再開する
 			break;
@@ -675,29 +676,29 @@ InterpretResult run(Thread* thread)
 
 		case OP_CLASS:
 		{
-			push(TO_OBJ(newClass(READ_STRING())));
+			push(thread, TO_OBJ(newClass(READ_STRING())));
 			break;
 		}
 
 		case OP_INHERIT:
 		{
-			Value superClass = peek(1);
+			Value superClass = peek(thread, 1);
 			if (!IS_CLASS(superClass))
 			{
-				runtimeError("Superclass must be a class.");
+				runtimeError(thread, "Superclass must be a class.");
 				return RuntimeError;
 			}
 
-			ObjClass* subClass = AS_CLASS(peek(0));
+			ObjClass* subClass = AS_CLASS(peek(thread, 0));
 			// 親クラスのメソッドを全て子クラスに突っ込む
 			tableAddAll(&AS_CLASS(superClass)->methods, &subClass->methods);
-			pop();
+			pop(thread);
 			break;
 		}
 
 		case OP_METHOD:
 		{
-			defineMethod(READ_STRING());
+			defineMethod(thread, READ_STRING());
 			break;
 		}
 
@@ -779,26 +780,26 @@ InterpretResult interpret(const char* source)
 
 	// 確保済みのスタック 0 番に関数オブジェクト自身を格納する
 	// ここで push が必要なのは、ガベージコレクション回避のため
-	push(TO_OBJ(function));
+	push(&vm.mainThread, TO_OBJ(function));
 
 	// 新しいフレームとして関数呼び出し
 	ObjClosure* closure = newClosure(function);
-	pop(); // 関数オブジェクトを取り出す
-	push(TO_OBJ(closure));
+	pop(&vm.mainThread); // 関数オブジェクトを取り出す
+	push(&vm.mainThread, TO_OBJ(closure));
 	call(&vm.mainThread, closure, 0);
 
 	return run(&vm.mainThread);
 }
 
-void push(Value value)
+void push(Thread* thread, Value value)
 {
-	*vm.mainThread.stackTop = value;
-	vm.mainThread.stackTop++;
+	*thread->stackTop = value;
+	thread->stackTop++;
 }
 
-Value pop()
+Value pop(Thread* thread)
 {
-	vm.mainThread.stackTop--;
-	return *vm.mainThread.stackTop;
+	thread->stackTop--;
+	return *thread->stackTop;
 }
 

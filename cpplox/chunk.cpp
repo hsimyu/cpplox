@@ -37,12 +37,12 @@ void Chunk::Write(uint8_t byte, int line)
 int Chunk::AddConstant(Value value)
 {
 	// reallocate 時に Value が GC 対象にならないように、スタックに積んでおく
-	push(value);
+	push(&getVM()->mainThread, value);
 
 	constants.Write(value);
 
 	// Value を取り出す
-	pop();
+	pop(&getVM()->mainThread);
 
 	// 定数を置いたインデックスを返す
 	return constants.count - 1;

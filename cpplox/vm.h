@@ -58,5 +58,5 @@ void freeVM();
 VM* getVM();
 
 InterpretResult interpret(const char* source);
-void push(Value value);
-Value pop();
+void push(Thread* thread, Value value);
+Value pop(Thread* thread);

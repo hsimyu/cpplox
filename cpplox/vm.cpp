@@ -38,7 +38,7 @@ void runtimeError(const char* format, ...);
 
 Value peek(int distance)
 {
-	return vm.stackTop[-1 - distance];
+	return vm.mainThread.stackTop[-1 - distance];
 }
 
 bool call(ObjClosure* closure, int argCount)
@@ -49,19 +49,19 @@ bool call(ObjClosure* closure, int argCount)
 		return false;
 	}
 
-	if (vm.frameCount == FRAMES_MAX)
+	if (vm.mainThread.frameCount == FRAMES_MAX)
 	{
 		runtimeError("Stack overflow.");
 		return false;
 	}
 
-	CallFrame* frame = &vm.frames[vm.frameCount++];
+	CallFrame* frame = &vm.mainThread.frames[vm.mainThread.frameCount++];
 	frame->closure = closure;
 	frame->ip = closure->function->chunk.code;
 
 	// stack 中に乗っている引数の数を引いた位置が、frame が参照するスタックの開始位置になる
 	// argCount + 1 なのは、予約分の 0 番の分
-	frame->slots = vm.stackTop - (argCount + 1);
+	frame->slots = vm.mainThread.stackTop - (argCount + 1);
 
 	return true;
 }
@@ -76,13 +76,13 @@ bool callValue(Value callee, int argCount)
 		{
 			ObjBoundMethod* bound = AS_BOUND_METHOD(callee);
 			// メソッド呼び出しのスロット 0 (予約) にインスタンスを差し込む
-			vm.stackTop[-argCount - 1] = bound->receiver;
+			vm.mainThread.stackTop[-argCount - 1] = bound->receiver;
 			return call(bound->method, argCount);
 		}
 		case ObjType::Class:
 		{
 			ObjClass* klass = AS_CLASS(callee);
-			vm.stackTop[-argCount - 1] = TO_OBJ(newInstance(klass));
+			vm.mainThread.stackTop[-argCount - 1] = TO_OBJ(newInstance(klass));
 
 			Value initializer;
 			if (tableGet(&klass->methods, vm.initString, &initializer))
@@ -105,8 +105,8 @@ bool callValue(Value callee, int argCount)
 		{
 			// Native 関数呼び出しの場合は、ここで即座に呼び出す
 			NativeFn native = AS_NATIVE(callee)->function;
-			Value result = native(argCount, vm.stackTop - argCount);
-			vm.stackTop -= argCount + 1;
+			Value result = native(argCount, vm.mainThread.stackTop - argCount);
+			vm.mainThread.stackTop -= argCount + 1;
 			push(result);
 			return true;
 		}
@@ -145,7 +145,7 @@ bool invoke(ObjString* name, int argCount)
 	if (tableGet(&instance->fields, name, &value))
 	{
 		// プロパティがフィールドだった場合はそれを普通の関数として呼び出す
-		vm.stackTop[-argCount - 1] = value;
+		vm.mainThread.stackTop[-argCount - 1] = value;
 		return callValue(value, argCount);
 	}
 
@@ -225,10 +225,12 @@ void defineMethod(ObjString* methodName)
 	pop(); // method を pop
 }
 
-void resetStack()
+void resetStack(Thread* thread)
 {
-	vm.stackTop = vm.stack;
-	vm.frameCount = 0;
+	thread->stackTop = thread->stack;
+	thread->frameCount = 0;
+
+	// TODO: これも Thread に持たせるべき?
 	vm.openUpvalues = nullptr;
 }
 
@@ -242,9 +244,9 @@ void runtimeError(const char* format, ...)
 	fputs("\n", stderr);
 
 	// print stack trace
-	for (int i = vm.frameCount - 1; i >= 0; i--)
+	for (int i = vm.mainThread.frameCount - 1; i >= 0; i--)
 	{
-		CallFrame* frame = &vm.frames[i];
+		CallFrame* frame = &vm.mainThread.frames[i];
 		ObjFunction* function = frame->closure->function;
 
 		size_t instruction = frame->ip - function->chunk.code - 1;
@@ -260,7 +262,7 @@ void runtimeError(const char* format, ...)
 		}
 	}
 
-	CallFrame* frame = &vm.frames[vm.frameCount - 1];
+	CallFrame* frame = &vm.mainThread.frames[vm.mainThread.frameCount - 1];
 
 	// コードを読んだあとに ip++ されているので、エラーを起こしたのは現在実行しているコードの一つ前になる
 	ObjFunction* function = frame->closure->function;
@@ -268,7 +270,7 @@ void runtimeError(const char* format, ...)
 	int line = function->chunk.lines[instruction];
 	fprintf(stderr, "[line %d] in script\n", line);
 
-	resetStack();
+	resetStack(&vm.mainThread);
 }
 
 void defineNative(const char* name, NativeFn function)
@@ -279,7 +281,7 @@ void defineNative(const char* name, NativeFn function)
 
 	// ネイティブ関数は global に入れる
 	// TODO: ここでスタックは空になっている前提で合っている？
-	tableSet(&vm.globals, AS_STRING(vm.stack[0]), vm.stack[1]);
+	tableSet(&vm.globals, AS_STRING(vm.mainThread.stack[0]), vm.mainThread.stack[1]);
 
 	pop();
 	pop();
@@ -326,7 +328,7 @@ void concatenate()
 
 InterpretResult run()
 {
-	CallFrame* frame = &vm.frames[vm.frameCount - 1];
+	CallFrame* frame = &vm.mainThread.frames[vm.mainThread.frameCount - 1];
 
 #define READ_BYTE() (*frame->ip++)
 
@@ -349,7 +351,7 @@ InterpretResult run()
 	{
 #if DEBUG_TRACE_EXECUTION
 		printf("          ");
-		for (Value* slot = vm.stack; slot < vm.stackTop; slot++)
+		for (Value* slot = vm.mainThread.stack; slot < vm.mainThread.stackTop; slot++)
 		{
 			printf("[ ");
 			printValue(*slot);
@@ -591,7 +593,7 @@ InterpretResult run()
 			}
 			// 呼び出しが成功したので呼び出し元を frame 変数にキャッシュしておく
 			// NOTE: Native 関数の場合、frame の指し位置は変わらない
-			frame = &vm.frames[vm.frameCount - 1];
+			frame = &vm.mainThread.frames[vm.mainThread.frameCount - 1];
 			break;
 		}
 
@@ -603,7 +605,7 @@ InterpretResult run()
 			{
 				return RuntimeError;
 			}
-			frame = &vm.frames[vm.frameCount - 1];
+			frame = &vm.mainThread.frames[vm.mainThread.frameCount - 1];
 			break;
 		}
 
@@ -617,7 +619,7 @@ InterpretResult run()
 			{
 				return RuntimeError;
 			}
-			frame = &vm.frames[vm.frameCount - 1];
+			frame = &vm.mainThread.frames[vm.mainThread.frameCount - 1];
 			break;
 		}
 
@@ -648,7 +650,7 @@ InterpretResult run()
 
 		case OP_CLOSE_UPVALUE:
 		{
-			closeUpvalues(vm.stackTop - 1);
+			closeUpvalues(vm.mainThread.stackTop - 1);
 			pop();
 			break;
 		}
@@ -656,17 +658,17 @@ InterpretResult run()
 		case OP_RETURN: {
 			Value result = pop();
 			closeUpvalues(frame->slots);
-			vm.frameCount--;
-			if (vm.frameCount == 0)
+			vm.mainThread.frameCount--;
+			if (vm.mainThread.frameCount == 0)
 			{
 				// 実行終了
 				pop();
 				return Ok;
 			}
 
-			vm.stackTop = frame->slots; // スタックを復元
+			vm.mainThread.stackTop = frame->slots; // スタックを復元
 			push(result);
-			frame = &vm.frames[vm.frameCount - 1]; // 呼び出し元フレームを一つ上に
+			frame = &vm.mainThread.frames[vm.mainThread.frameCount - 1]; // 呼び出し元フレームを一つ上に
 			// frame が書き換わることで、関数呼び出し位置の ip から実行が再開する
 			break;
 		}
@@ -727,9 +729,15 @@ void freeObjects()
 
 }
 
+void initThread(Thread* thread)
+{
+	thread->frameCount = 0;
+	thread->stackTop = nullptr;
+}
+
 void initVM()
 {
-	resetStack();
+	initThread(&vm.mainThread);
 
 	vm.objects = nullptr;
 	vm.bytesAllocated = 0;
@@ -785,13 +793,13 @@ InterpretResult interpret(const char* source)
 
 void push(Value value)
 {
-	*vm.stackTop = value;
-	vm.stackTop++;
+	*vm.mainThread.stackTop = value;
+	vm.mainThread.stackTop++;
 }
 
 Value pop()
 {
-	vm.stackTop--;
-	return *vm.stackTop;
+	vm.mainThread.stackTop--;
+	return *vm.mainThread.stackTop;
 }
 

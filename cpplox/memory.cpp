@@ -19,15 +19,15 @@ void markRoots()
 	auto vm = getVM();
 
 	// スタック上の変数をマーク
-	for (Value* slot = vm->stack; slot < vm->stackTop; slot++)
+	for (Value* slot = vm->mainThread.stack; slot < vm->mainThread.stackTop; slot++)
 	{
 		markValue(*slot);
 	}
 
 	// 各コールフレームのクロージャをマーク
-	for (int i = 0; i < vm->frameCount; i++)
+	for (int i = 0; i < vm->mainThread.frameCount; i++)
 	{
-		markObject(reinterpret_cast<Obj*>(vm->frames[i].closure));
+		markObject(reinterpret_cast<Obj*>(vm->mainThread.frames[i].closure));
 	}
 
 	// オープン上位値のリストをマーク

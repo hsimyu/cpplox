@@ -18,7 +18,7 @@ struct CallFrame
 	Value* slots = nullptr;
 };
 
-struct VM
+struct Thread
 {
 	// 関数スタック
 	CallFrame frames[FRAMES_MAX] = { };
@@ -26,6 +26,12 @@ struct VM
 
 	Value stack[STACK_COUNT_MAX] = { };
 	Value* stackTop = nullptr;
+};
+void initThread(Thread* thread);
+
+struct VM
+{
+	Thread mainThread;
 	Table globals;
 	Table strings;
 	ObjString* initString = nullptr;

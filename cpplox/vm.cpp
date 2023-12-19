@@ -167,10 +167,10 @@ bool bindMethod(Thread* thread, ObjClass* klass, ObjString* name)
 	return true;
 }
 
-ObjUpvalue* captureUpvalue(Value* local)
+ObjUpvalue* captureUpvalue(Thread* thread, Value* local)
 {
 	ObjUpvalue* prevUpvalue = nullptr;
-	ObjUpvalue* upvalue = vm.openUpvalues;
+	ObjUpvalue* upvalue = thread->openUpvalues;
 
 	// キャプチャしようとしているローカルより後方にいるオープン上位値があるかを探す
 	// 対象よりスタックの後方にいるオープン上位値を見つけた、
@@ -193,7 +193,7 @@ ObjUpvalue* captureUpvalue(Value* local)
 	if (prevUpvalue == nullptr)
 	{
 		// prev がない == 先頭の上位値
-		vm.openUpvalues = createdValue;
+		thread->openUpvalues = createdValue;
 	}
 	else
 	{
@@ -204,15 +204,15 @@ ObjUpvalue* captureUpvalue(Value* local)
 	return createdValue;
 }
 
-void closeUpvalues(Value* last)
+void closeUpvalues(Thread* thread, Value* last)
 {
 	// オープン上位値かつ現在のスコープ内のローカル変数であるものを辿る
-	while (vm.openUpvalues != nullptr && vm.openUpvalues->location >= last)
+	while (thread->openUpvalues != nullptr && thread->openUpvalues->location >= last)
 	{
-		ObjUpvalue* upvalue = vm.openUpvalues;
+		ObjUpvalue* upvalue = thread->openUpvalues;
 		upvalue->closed = *upvalue->location; // Value をコピー
 		upvalue->location = &upvalue->closed; // location がコピーした値を指すように変更
-		vm.openUpvalues = upvalue->next;
+		thread->openUpvalues = upvalue->next;
 	}
 }
 
@@ -229,9 +229,7 @@ void resetStack(Thread* thread)
 {
 	thread->stackTop = thread->stack;
 	thread->frameCount = 0;
-
-	// TODO: これも Thread に持たせるべき?
-	vm.openUpvalues = nullptr;
+	thread->openUpvalues = nullptr;
 }
 
 void runtimeError(Thread* thread, const char* format, ...)
@@ -638,7 +636,7 @@ InterpretResult run(Thread* thread)
 				{
 					// ローカルスコープの上位値の場合は、キャプチャする
 					// ローカル変数なので、フレームのスタック + index 分で Value* を取れる
-					closure->upvalues[i] = captureUpvalue(frame->slots + index);
+					closure->upvalues[i] = captureUpvalue(thread, frame->slots + index);
 				}
 				else
 				{
@@ -651,14 +649,14 @@ InterpretResult run(Thread* thread)
 
 		case OP_CLOSE_UPVALUE:
 		{
-			closeUpvalues(thread->stackTop - 1);
+			closeUpvalues(thread, thread->stackTop - 1);
 			pop(thread);
 			break;
 		}
 
 		case OP_RETURN: {
 			Value result = pop(thread);
-			closeUpvalues(frame->slots);
+			closeUpvalues(thread, frame->slots);
 			thread->frameCount--;
 			if (thread->frameCount == 0)
 			{

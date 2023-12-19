@@ -31,7 +31,7 @@ void markRoots()
 	}
 
 	// オープン上位値のリストをマーク
-	for (ObjUpvalue* upvalue = vm->openUpvalues; upvalue != nullptr; upvalue = upvalue->next)
+	for (ObjUpvalue* upvalue = vm->mainThread.openUpvalues; upvalue != nullptr; upvalue = upvalue->next)
 	{
 		markObject(reinterpret_cast<Obj*>(upvalue));
 	}

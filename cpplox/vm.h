@@ -26,6 +26,8 @@ struct Thread
 
 	Value stack[STACK_COUNT_MAX] = { };
 	Value* stackTop = nullptr;
+
+	ObjUpvalue* openUpvalues = nullptr;
 };
 void initThread(Thread* thread);
 
@@ -35,7 +37,6 @@ struct VM
 	Table globals;
 	Table strings;
 	ObjString* initString = nullptr;
-	ObjUpvalue* openUpvalues = nullptr;
 
 	size_t bytesAllocated = 0;
 	size_t nextGC;

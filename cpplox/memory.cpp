@@ -14,27 +14,31 @@
 namespace
 {
 
-void markRoots()
+void markThread(Thread* thread)
 {
-	auto vm = getVM();
-
 	// スタック上の変数をマーク
-	for (Value* slot = vm->mainThread.stack; slot < vm->mainThread.stackTop; slot++)
+	for (Value* slot = thread->stack; slot < thread->stackTop; slot++)
 	{
 		markValue(*slot);
 	}
 
 	// 各コールフレームのクロージャをマーク
-	for (int i = 0; i < vm->mainThread.frameCount; i++)
+	for (int i = 0; i < thread->frameCount; i++)
 	{
-		markObject(reinterpret_cast<Obj*>(vm->mainThread.frames[i].closure));
+		markObject(reinterpret_cast<Obj*>(thread->frames[i].closure));
 	}
 
 	// オープン上位値のリストをマーク
-	for (ObjUpvalue* upvalue = vm->mainThread.openUpvalues; upvalue != nullptr; upvalue = upvalue->next)
+	for (ObjUpvalue* upvalue = thread->openUpvalues; upvalue != nullptr; upvalue = upvalue->next)
 	{
 		markObject(reinterpret_cast<Obj*>(upvalue));
 	}
+}
+
+void markRoots()
+{
+	auto vm = getVM();
+	markThread(&vm->mainThread);
 
 	// グローバル変数テーブルをマーク
 	markTable(&vm->globals);
@@ -103,6 +107,12 @@ void blackenObject(Obj* obj)
 		// クローズ上位値をマーク
 		markValue(reinterpret_cast<ObjUpvalue*>(obj)->closed);
 		break;
+	case ObjType::Thread:
+	{
+		ObjThread* t = reinterpret_cast<ObjThread*>(obj);
+		markThread(t->thread);
+		break;
+	}
 	case ObjType::Native:
 	case ObjType::String:
 		break;

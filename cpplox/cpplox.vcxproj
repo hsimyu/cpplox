@@ -153,6 +153,7 @@
     <ClInclude Include="object.h" />
     <ClInclude Include="scanner.h" />
     <ClInclude Include="table.h" />
+    <ClInclude Include="thread.h" />
     <ClInclude Include="value.h" />
     <ClInclude Include="vm.h" />
   </ItemGroup>

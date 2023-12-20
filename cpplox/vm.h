@@ -36,5 +36,7 @@ void freeVM();
 VM* getVM();
 
 InterpretResult interpret(const char* source);
+InterpretResult interpret(Thread* thread, const char* source);
+void loadToThread(Thread* thread, ObjClosure* closure);
 void push(Thread* thread, Value value);
 Value pop(Thread* thread);

@@ -1262,7 +1262,7 @@ void grouping()
 
 }
 
-ObjFunction* compile(const char* source)
+ObjFunction* compileImpl(const char* source)
 {
 	initScanner(source);
 

@@ -2,5 +2,5 @@
 
 struct ObjFunction;
 
-ObjFunction* compile(const char* source);
+ObjFunction* compileImpl(const char* source);
 void markCompilerRoots();

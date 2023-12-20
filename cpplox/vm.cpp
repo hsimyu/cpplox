@@ -776,22 +776,40 @@ VM* getVM()
 	return &vm;
 }
 
+ObjClosure* compileTo(Thread* thread, const char* source)
+{
+	ObjFunction* function = compileImpl(source);
+	if (function == nullptr) return nullptr;
+
+	// ここで function の push が必要なのは、ガベージコレクション回避のため
+	push(thread, TO_OBJ(function));
+	ObjClosure* closure = newClosure(function);
+	pop(thread);
+
+	return closure;
+}
+
+void loadToThread(Thread* thread, ObjClosure* closure)
+{
+	// 確保済みのスタック 0 番に closure 自身を格納する
+	push(thread, TO_OBJ(closure));
+
+	// function の chunk をスレッドにロード
+	call(thread, closure, 0);
+}
+
+InterpretResult interpret(Thread* thread, const char* source)
+{
+	ObjClosure* closure = compileTo(thread, source);
+	if (closure == nullptr) return InterpretResult::CompileError;
+
+	loadToThread(thread, closure);
+	return run(thread); // ロードした chunk の実行ループを開始
+}
+
 InterpretResult interpret(const char* source)
 {
-	ObjFunction* function = compile(source);
-	if (function == nullptr) return InterpretResult::CompileError;
-
-	// 確保済みのスタック 0 番に関数オブジェクト自身を格納する
-	// ここで push が必要なのは、ガベージコレクション回避のため
-	push(&vm.mainThread, TO_OBJ(function));
-
-	// 新しいフレームとして関数呼び出し
-	ObjClosure* closure = newClosure(function);
-	pop(&vm.mainThread); // 関数オブジェクトを取り出す
-	push(&vm.mainThread, TO_OBJ(closure));
-	call(&vm.mainThread, closure, 0);
-
-	return run(&vm.mainThread);
+	return interpret(&vm.mainThread, source);
 }
 
 void push(Thread* thread, Value value)

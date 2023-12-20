@@ -13,11 +13,15 @@
 #include <cstdarg>
 #include <cstring>
 #include <ctime>
+#include <cassert>
 
 VM vm; // global vm instance
 
 namespace
 {
+
+InterpretResult run(Thread* thread);
+void runtimeError(Thread* thread, const char* format, ...);
 
 Value clockNative(int argCount, Value* args)
 {
@@ -29,12 +33,30 @@ Value toStringNative(int argCount, Value* args)
 	return TO_OBJ(toString(args[0]));
 }
 
+Value createThread(int argCount, Value* args)
+{
+	assert(argCount == 1);
+	ObjClosure* closure = AS_CLOSURE(args[0]);
+	return TO_OBJ(newThread(closure));
 }
 
-namespace
+Value runThread(int argCount, Value* args)
 {
+	assert(argCount == 1);
+	ObjThread* obj = AS_THREAD(args[0]);
+	auto result = run(&obj->thread);
 
-void runtimeError(Thread* thread, const char* format, ...);
+	switch (result)
+	{
+	case InterpretResult::Ok:
+		return TO_BOOL(true);
+	case InterpretResult::RuntimeError:
+		return TO_BOOL(false);
+	default:
+		// unknown
+		return TO_BOOL(false);
+	}
+}
 
 Value peek(Thread* thread, int distance)
 {
@@ -757,6 +779,8 @@ void initVM()
 
 	defineNative("clock", clockNative);
 	defineNative("tostring", toStringNative);
+	defineNative("createThread", createThread);
+	defineNative("runThread", runThread);
 }
 
 void freeVM()

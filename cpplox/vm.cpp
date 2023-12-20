@@ -735,7 +735,6 @@ void initThread(Thread* thread)
 
 void freeThread(Thread* thread)
 {
-	free(thread);
 }
 
 void initVM()

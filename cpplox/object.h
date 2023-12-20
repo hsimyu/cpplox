@@ -5,8 +5,7 @@
 #include "chunk.h"
 #include "value.h"
 #include "table.h"
-
-struct Thread;
+#include "thread.h"
 
 #define OBJ_TYPE(value) (AS_OBJ(value)->type)
 
@@ -140,10 +139,10 @@ ObjBoundMethod* newBoundMethod(Value receiver, ObjClosure* method);
 struct ObjThread
 {
 	Obj obj;
-	Thread* thread = nullptr;
+	Thread thread;
 };
 
-ObjThread* newThread(Thread* thread);
+ObjThread* newThread(ObjClosure* closure);
 
 void freeObject(Obj* obj);
 void printObject(Value value);

@@ -93,10 +93,11 @@ ObjBoundMethod* newBoundMethod(Value receiver, ObjClosure* method)
 	return bound;
 }
 
-ObjThread* newThread(Thread* thread)
+ObjThread* newThread(ObjClosure* c)
 {
 	ObjThread* t = allocateObject<ObjThread>(ObjType::Thread);
-	t->thread = thread;
+	initThread(&t->thread);
+	loadToThread(&t->thread, c);
 	return t;
 }
 
@@ -248,7 +249,7 @@ void freeObject(Obj* obj)
 	case Thread:
 	{
 		ObjThread* t = reinterpret_cast<ObjThread*>(obj);
-		freeThread(t->thread);
+		freeThread(&t->thread);
 		free(t);
 		break;
 

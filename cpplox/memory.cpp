@@ -110,7 +110,7 @@ void blackenObject(Obj* obj)
 	case ObjType::Thread:
 	{
 		ObjThread* t = reinterpret_cast<ObjThread*>(obj);
-		markThread(t->thread);
+		markThread(&t->thread);
 		break;
 	}
 	case ObjType::Native:

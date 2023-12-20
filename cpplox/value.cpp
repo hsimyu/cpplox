@@ -117,30 +117,30 @@ ObjString* toString(Value val)
 #endif
 }
 
-void ValueArray::Init()
+void initValueArray(ValueArray* arr)
 {
-	count = 0;
-	capacity = 0;
-	values = nullptr;
+	arr->count = 0;
+	arr->capacity = 0;
+	arr->values = nullptr;
 }
 
-void ValueArray::Free()
+void freeValueArray(ValueArray* arr)
 {
-	free_array(values, capacity);
-	Init();
+	free_array(arr->values, arr->capacity);
+	initValueArray(arr);
 }
 
-void ValueArray::Write(Value val)
+void writeToValueArray(ValueArray* arr, Value val)
 {
-	if (capacity < count + 1)
+	if (arr->capacity < arr->count + 1)
 	{
-		auto oldCapacity = capacity;
-		capacity = grow_capacity(oldCapacity);
-		values = grow_array(values, oldCapacity, capacity);
+		auto oldCapacity = arr->capacity;
+		arr->capacity = grow_capacity(oldCapacity);
+		arr->values = grow_array(arr->values, oldCapacity, arr->capacity);
 	}
 
-	values[count] = val;
-	count++;
+	arr->values[arr->count] = val;
+	arr->count++;
 }
 
 bool valuesEqual(Value a, Value b)

@@ -106,7 +106,7 @@ ObjFunction* newFunction()
 	f->arity = 0;
 	f->upvalueCount = 0;
 	f->name = nullptr;
-	f->chunk.Init();
+	initChunk(&f->chunk);
 	return f;
 }
 
@@ -214,7 +214,7 @@ void freeObject(Obj* obj)
 	case Function:
 	{
 		ObjFunction* f = reinterpret_cast<ObjFunction*>(obj);
-		f->chunk.Free();
+		freeChunk(&f->chunk);
 		free(f);
 		break;
 	}

@@ -174,7 +174,7 @@ bool match(TokenType type)
 
 void emitByte(uint8_t byte)
 {
-	currentChunk()->Write(byte, parser.previous.line);
+	writeToChunk(currentChunk(), byte, parser.previous.line);
 }
 
 void emitBytes(uint8_t byte1, uint8_t byte2)
@@ -228,7 +228,7 @@ void patchJump(int offset)
 
 uint8_t makeConstant(Value value)
 {
-	int constant = currentChunk()->AddConstant(value);
+	int constant = addConstant(currentChunk(), value);
 	if (constant > UINT8_MAX)
 	{
 		error("Too many constants in one chunk.");

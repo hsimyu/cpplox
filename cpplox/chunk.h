@@ -46,16 +46,6 @@ enum OpCode
 
 struct Chunk
 {
-	Chunk()
-	{
-		Init();
-	}
-
-	void Init();
-	void Free();
-	void Write(uint8_t byte, int line);
-	int AddConstant(Value value);
-
 	int count = 0;
 	int capacity = 0;
 	uint8_t* code = nullptr;
@@ -63,3 +53,7 @@ struct Chunk
 	ValueArray constants;
 };
 
+void initChunk(Chunk* chunk);
+void freeChunk(Chunk* chunk);
+void writeToChunk(Chunk* chunk, uint8_t byte, int line);
+int addConstant(Chunk* chunk, Value value);

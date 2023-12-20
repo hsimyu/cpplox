@@ -104,14 +104,14 @@ ObjString* toString(Value val);
 
 struct ValueArray
 {
-	void Init();
-	void Free();
-	void Write(Value value);
-
 	int capacity = 0;
 	int count = 0;
 	Value* values = nullptr;
 };
+
+void initValueArray(ValueArray* arr);
+void freeValueArray(ValueArray* arr);
+void writeToValueArray(ValueArray* arr, Value value);
 
 bool valuesEqual(Value a, Value b);
 

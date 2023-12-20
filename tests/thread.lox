@@ -1,0 +1,11 @@
+fun foo() {
+    print "This is sub thread";
+    print "aaa";
+    print "bbb";
+    print "ccc";
+}
+
+var thread = createThread(foo);
+print "-- begin thread --";
+runThread(thread);
+print "-- end thread --";

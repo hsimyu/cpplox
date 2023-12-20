@@ -288,7 +288,7 @@ void printObject(Value value)
 		printf("%s", AS_CSTRING(value));
 		break;
 	case Thread:
-		printf("thread");
+		printf("<thread>");
 		break;
 	}
 }
@@ -364,7 +364,7 @@ void writeObjString(Value value, char* buffer, size_t bufferSize)
 	}
 	case Thread:
 	{
-		snprintf(buffer, bufferSize, "thread");
+		snprintf(buffer, bufferSize, "<thread>");
 		break;
 	}
 	}

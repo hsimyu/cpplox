@@ -2,9 +2,15 @@ import subprocess
 import os
 import sys
 import fnmatch
+import argparse
 
-def run(pattern=None):
-    binary_path = "./x64/Debug/cpplox.exe"
+def run(pattern=None, is_release=False):
+    if is_release:
+        configuration = "Release"
+    else:
+        configuration = "Debug"
+
+    binary_path = f"./x64/{configuration}/cpplox.exe"
 
     # testsディレクトリ内の.loxファイルのパスを取得
     tests_directory = './tests'
@@ -56,7 +62,17 @@ def run(pattern=None):
     else:
         exit(1)
 
+def main():
+    parser = argparse.ArgumentParser(description='Lox test benchmark')
+    parser.add_argument('--release', action='store_true', help='Release mode')
+    parser.add_argument('pattern', type=str, help='Pattern argument')
+
+    args = parser.parse_args()
+
+    run(args.pattern, args.release)
+
 if __name__ == "__main__":
+    main()
     pattern_arg = None
     if len(sys.argv) > 1:
         pattern_arg = sys.argv[1]

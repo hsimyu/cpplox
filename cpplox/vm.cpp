@@ -347,10 +347,6 @@ void concatenate(Thread* thread)
 	push(thread, toObjValue(result)); // result
 }
 
-InterpretResult run(Thread* thread)
-{
-	CallFrame* frame = &thread->frames[thread->frameCount - 1];
-
 #define READ_BYTE() (*frame->ip++)
 
 // 2 instruction 消費して 16bit 整数として読み取る
@@ -364,8 +360,19 @@ InterpretResult run(Thread* thread)
 #define READ_STRING() \
 	AS_STRING(READ_CONSTANT())
 
+InterpretResult run(Thread* thread)
+{
+	CallFrame* frame = &thread->frames[thread->frameCount - 1];
+
 #if DEBUG_TRACE_EXECUTION
-	printf("== run() ==\n");
+	if (frame->ip == frame->closure->function->chunk.code)
+	{
+		printf("== run() ==\n");
+	}
+	else
+	{
+		printf("== resume() ==\n");
+	}
 #endif
 
 	for (;;)
@@ -692,6 +699,15 @@ InterpretResult run(Thread* thread)
 			frame = &thread->frames[thread->frameCount - 1]; // 呼び出し元フレームを一つ上に
 			// frame が書き換わることで、関数呼び出し位置の ip から実行が再開する
 			break;
+		}
+
+		case OP_YIELD:
+		{
+			// TODO: メインスレッドだったら怒る
+			// TODO: yield 引数に対応
+			// 呼び出し時点で関数の ip は yield の次を指している
+			// スタックの状態などを全て保存したまま実行を完了してしまう
+			return Ok;
 		}
 
 		case OP_CLASS:

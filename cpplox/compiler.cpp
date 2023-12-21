@@ -1169,6 +1169,13 @@ void whileStatement()
 	emitByte(OP_POP);
 }
 
+void yieldStatement()
+{
+	// yieldStmt := "yield";
+	consume(TOKEN_SEMICOLON, "Expect ';' after yield.");
+	emitByte(OP_YIELD);
+}
+
 void synchronize()
 {
 	parser.panicMode = false;
@@ -1241,6 +1248,10 @@ void statement()
 	else if (match(TOKEN_WHILE))
 	{
 		whileStatement();
+	}
+	else if (match(TOKEN_YIELD))
+	{
+		yieldStatement();
 	}
 	else if (match(TOKEN_LEFT_BRACE))
 	{

@@ -1,11 +1,19 @@
 fun foo() {
     print "This is sub thread";
+    yield;
     print "aaa";
+    yield;
     print "bbb";
+    yield;
     print "ccc";
 }
 
 var thread = createThread(foo);
-print "-- begin thread --";
+print "-- run1 --";
 runThread(thread);
-print "-- end thread --";
+print "-- run2 --";
+runThread(thread);
+print "-- run3 --";
+runThread(thread);
+print "-- run4 --";
+runThread(thread);

@@ -153,6 +153,7 @@ TokenType identifierType()
 			break;
 		case 'v': return checkKeyword(1, 2, "ar", TOKEN_VAR);
 		case 'w': return checkKeyword(1, 4, "hile", TOKEN_WHILE);
+		case 'y': return checkKeyword(1, 4, "ield", TOKEN_YIELD);
 		default:
 			break;
 	}

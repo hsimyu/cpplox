@@ -1157,7 +1157,7 @@ void whileStatement()
 	// whileStmt := "while" "(" expression ")" statement;
 	consume(TOKEN_LEFT_PAREN, "Expect '(' after 'while'.");
 	expression();
-	consume(TOKEN_RIGHT_PAREN, "Expect '(' after condition.");
+	consume(TOKEN_RIGHT_PAREN, "Expect ')' after condition.");
 
 	// condition が Falsey なら statement 実行完了箇所までジャンプ
 	int exitJump = emitJump(OP_JUMP_IF_FALSE);
@@ -1171,8 +1171,21 @@ void whileStatement()
 
 void yieldStatement()
 {
-	// yieldStmt := "yield";
-	consume(TOKEN_SEMICOLON, "Expect ';' after yield.");
+	// yieldStmt := "yield" "(" expression ")";
+	consume(TOKEN_LEFT_PAREN, "Expect '(' after 'yield'.");
+
+	if (match(TOKEN_RIGHT_PAREN))
+	{
+		// expression が空だったので nil を積んでおく
+		emitByte(OP_NIL);
+	}
+	else
+	{
+		expression();
+		consume(TOKEN_RIGHT_PAREN, "Expect ')' after expression.");
+	}
+
+	consume(TOKEN_SEMICOLON, "Expect ';' after yield().");
 	emitByte(OP_YIELD);
 }
 

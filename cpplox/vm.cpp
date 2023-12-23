@@ -49,7 +49,11 @@ Value runThread(int argCount, Value* args)
 	switch (result)
 	{
 	case InterpretResult::Ok:
-		return TO_BOOL(true);
+	{
+		// スタックトップに結果を積んである
+		Value result = pop(&obj->thread);
+		return result;
+	}
 	case InterpretResult::RuntimeError:
 		return TO_BOOL(false);
 	default:
@@ -690,7 +694,9 @@ InterpretResult run(Thread* thread)
 			if (thread->frameCount == 0)
 			{
 				// 実行終了
-				pop(thread);
+				pop(thread); // 0 番目に積んでいた function を POP
+				// 最後の実行結果をスタックトップに積んで、呼び出し元で取り出す
+				push(thread, result);
 				return Ok;
 			}
 
@@ -704,7 +710,9 @@ InterpretResult run(Thread* thread)
 		case OP_YIELD:
 		{
 			// TODO: メインスレッドだったら怒る
-			// TODO: yield 引数に対応
+			// NOTE: ここでスタックトップに積んである値を結果として返すが、
+			// ここで取り出してしまうと呼び出し元に返す方法がないので、積んだままループを抜ける
+			// yield 引数に対応
 			// 呼び出し時点で関数の ip は yield の次を指している
 			// スタックの状態などを全て保存したまま実行を完了してしまう
 			return Ok;
@@ -843,7 +851,9 @@ InterpretResult interpret(Thread* thread, const char* source)
 	if (closure == nullptr) return InterpretResult::CompileError;
 
 	loadToThread(thread, closure);
-	return run(thread); // ロードした chunk の実行ループを開始
+	auto result = run(thread); // ロードした chunk の実行ループを開始
+	pop(thread); // NOTE: 最後の実行結果は今のところ不要なので捨てる
+	return result;
 }
 
 InterpretResult interpret(const char* source)

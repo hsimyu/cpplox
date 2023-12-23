@@ -1,19 +1,27 @@
 fun foo() {
     print "This is sub thread";
-    yield;
+    yield();
     print "aaa";
-    yield;
+    yield();
     print "bbb";
-    yield;
+    yield("final");
     print "ccc";
 }
 
 var thread = createThread(foo);
+var result = nil;
 print "-- run1 --";
-runThread(thread);
+result = runThread(thread);
+print "result = " + tostring(result);
+
 print "-- run2 --";
-runThread(thread);
+result = runThread(thread);
+print "result = " + tostring(result);
+
 print "-- run3 --";
-runThread(thread);
+result = runThread(thread);
+print "result = " + tostring(result);
+
 print "-- run4 --";
-runThread(thread);
+result = runThread(thread);
+print "result = " + tostring(result);

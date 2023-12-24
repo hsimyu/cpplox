@@ -1187,6 +1187,7 @@ void yieldStatement()
 
 	consume(TOKEN_SEMICOLON, "Expect ';' after yield().");
 	emitByte(OP_YIELD);
+	emitByte(OP_RESUME);
 }
 
 void synchronize()

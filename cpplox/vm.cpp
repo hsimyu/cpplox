@@ -66,9 +66,21 @@ Value runThread(int argCount, Value* args)
 		}
 
 		// TODO: 初回 runThread() で渡された引数が arity に足りなかったらどうするか決める
-
 		call(&obj->thread, closure, argCount - 1);
 		obj->state = ThreadState::Running;
+	}
+	else if (obj->state == ThreadState::Running)
+	{
+		if (argCount >= 2)
+		{
+			// resume 時の引数をスレッドのスタックに積む
+			// TODO: 可変長引数対応
+			push(&obj->thread, args[1]);
+		}
+		else
+		{
+			push(&obj->thread, TO_NIL());
+		}
 	}
 
 	auto result = run(&obj->thread);
@@ -749,6 +761,17 @@ InterpretResult run(Thread* thread)
 			// 呼び出し時点で関数の ip は yield の次を指している
 			// スタックの状態などを全て保存したまま実行を完了してしまう
 			return Yield;
+		}
+
+		case OP_RESUME:
+		{
+			// 外から渡された値を yield 式の結果として返す
+			// 今はとりあえず捨てる
+			Value arg = pop(thread);
+			printf("resume arg = ");
+			printValue(arg);
+			printf("\n");
+			break;
 		}
 
 		case OP_CLASS:

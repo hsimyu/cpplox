@@ -16,7 +16,7 @@ result = runThread(thread, 1);
 print "result = " + tostring(result);
 
 print "-- run2 --";
-result = runThread(thread);
+result = runThread(thread, "aaa");
 print "result = " + tostring(result);
 
 print "-- run3 --";
@@ -24,5 +24,5 @@ result = runThread(thread);
 print "result = " + tostring(result);
 
 print "-- run4 --";
-result = runThread(thread);
+result = runThread(thread, 4);
 print "result = " + tostring(result);

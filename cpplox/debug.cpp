@@ -161,6 +161,8 @@ int disassembleInstruction(const Chunk* chunk, int offset)
 		return simpleInstruction("OP_RETURN", offset);
 	case OP_YIELD:
 		return simpleInstruction("OP_YIELD", offset);
+	case OP_RESUME:
+		return simpleInstruction("OP_RESUME", offset);
 	case OP_CLASS:
 		return constantInstruction("OP_CLASS", chunk, offset);
 	case OP_INHERIT:

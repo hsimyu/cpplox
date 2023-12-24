@@ -48,7 +48,6 @@ enum TokenType
 	TOKEN_VAR,
 	TOKEN_WHILE,
 	TOKEN_YIELD,
-
 	TOKEN_ERROR,
 	TOKEN_EOF,
 };

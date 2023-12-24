@@ -763,17 +763,6 @@ InterpretResult run(Thread* thread)
 			return Yield;
 		}
 
-		case OP_RESUME:
-		{
-			// 外から渡された値を yield 式の結果として返す
-			// 今はとりあえず捨てる
-			Value arg = pop(thread);
-			printf("resume arg = ");
-			printValue(arg);
-			printf("\n");
-			break;
-		}
-
 		case OP_CLASS:
 		{
 			push(thread, TO_OBJ(newClass(READ_STRING())));

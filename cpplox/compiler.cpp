@@ -348,6 +348,7 @@ void binary();
 void call();
 void dot();
 void literal();
+void yield();
 void grouping();
 void expression();
 void declaration();
@@ -393,6 +394,7 @@ ParseRule rules[] = {
 	/* TOKEN_TRUE          */ {literal, nullptr, PREC_NONE},
 	/* TOKEN_VAR           */ {nullptr, nullptr, PREC_NONE},
 	/* TOKEN_WHILE         */ {nullptr, nullptr, PREC_NONE},
+	/* TOKEN_YIELD         */ {yield, nullptr, PREC_NONE},
 	/* TOKEN_ERROR         */ {nullptr, nullptr, PREC_NONE},
 	/* TOKEN_EOF           */ {nullptr, nullptr, PREC_NONE},
 };
@@ -861,6 +863,25 @@ void literal()
 	}
 }
 
+void yield()
+{
+	// yield := "yield" "(" expression ")";
+	consume(TOKEN_LEFT_PAREN, "Expect '(' after 'yield'.");
+
+	if (match(TOKEN_RIGHT_PAREN))
+	{
+		// expression が空だったので nil を積んでおく
+		emitByte(OP_NIL);
+	}
+	else
+	{
+		expression();
+		consume(TOKEN_RIGHT_PAREN, "Expect ')' after expression.");
+	}
+
+	emitByte(OP_YIELD);
+}
+
 void expression()
 {
 	parsePrecedence(PREC_ASSIGNMENT);
@@ -1169,27 +1190,6 @@ void whileStatement()
 	emitByte(OP_POP);
 }
 
-void yieldStatement()
-{
-	// yieldStmt := "yield" "(" expression ")";
-	consume(TOKEN_LEFT_PAREN, "Expect '(' after 'yield'.");
-
-	if (match(TOKEN_RIGHT_PAREN))
-	{
-		// expression が空だったので nil を積んでおく
-		emitByte(OP_NIL);
-	}
-	else
-	{
-		expression();
-		consume(TOKEN_RIGHT_PAREN, "Expect ')' after expression.");
-	}
-
-	consume(TOKEN_SEMICOLON, "Expect ';' after yield().");
-	emitByte(OP_YIELD);
-	emitByte(OP_RESUME);
-}
-
 void synchronize()
 {
 	parser.panicMode = false;
@@ -1262,10 +1262,6 @@ void statement()
 	else if (match(TOKEN_WHILE))
 	{
 		whileStatement();
-	}
-	else if (match(TOKEN_YIELD))
-	{
-		yieldStatement();
 	}
 	else if (match(TOKEN_LEFT_BRACE))
 	{

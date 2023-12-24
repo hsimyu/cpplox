@@ -1,12 +1,12 @@
 fun foo(v) {
-    print "v = " + tostring(v);
-    print "This is sub thread";
-    yield();
-    print "aaa";
-    yield();
-    print "bbb";
-    yield("final");
-    print "ccc";
+    print "[foo] v = " + tostring(v);
+    print "[foo] This is sub thread";
+    var arg = yield();
+    print "[foo] 1. arg = " + tostring(arg);
+    arg = yield();
+    print "[foo] 2. arg = " + tostring(arg);
+    arg = yield("final");
+    print "[foo] 3. arg = " + tostring(arg);
 }
 
 var thread = createThread(foo);

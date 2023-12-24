@@ -21,6 +21,8 @@ namespace
 {
 
 InterpretResult run(Thread* thread);
+Value peek(Thread* thread, int distance);
+bool call(Thread* thread, ObjClosure* closure, int argCount);
 void runtimeError(Thread* thread, const char* format, ...);
 
 Value clockNative(int argCount, Value* args)
@@ -42,23 +44,55 @@ Value createThread(int argCount, Value* args)
 
 Value runThread(int argCount, Value* args)
 {
-	assert(argCount == 1);
+	assert(argCount >= 1);
 	ObjThread* obj = AS_THREAD(args[0]);
+
+	if (obj->state == ThreadState::End)
+	{
+		runtimeError(&obj->thread, "This thread is already dead.");
+		return TO_NIL();
+	}
+
+	// arity に足りない分は nil で埋める
+	if (obj->state == ThreadState::NotStarted)
+	{
+		// 初回実行なので引数を積んで関数をロードする
+		auto closure = AS_CLOSURE(peek(&obj->thread, 0)); // ObjClosure* のはず
+		if (argCount >= 2)
+		{
+			// resume 時の引数をスレッドのスタックに積む
+			// TODO: 可変長引数対応
+			push(&obj->thread, args[1]);
+		}
+
+		// TODO: 初回 runThread() で渡された引数が arity に足りなかったらどうするか決める
+
+		call(&obj->thread, closure, argCount - 1);
+		obj->state = ThreadState::Running;
+	}
+
 	auto result = run(&obj->thread);
 
 	switch (result)
 	{
 	case InterpretResult::Ok:
 	{
-		// スタックトップに結果を積んである
+		obj->state = ThreadState::End;
+		pop(&obj->thread); // 最後の実行結果を取り出す
+		return TO_NIL();
+	}
+	case InterpretResult::Yield:
+	{
+		// スタックトップに Yield の引数を積んである
 		Value result = pop(&obj->thread);
 		return result;
 	}
 	case InterpretResult::RuntimeError:
-		return TO_BOOL(false);
+		obj->state = ThreadState::End;
+		return TO_NIL();
 	default:
 		// unknown
-		return TO_BOOL(false);
+		return TO_NIL();
 	}
 }
 
@@ -712,10 +746,9 @@ InterpretResult run(Thread* thread)
 			// TODO: メインスレッドだったら怒る
 			// NOTE: ここでスタックトップに積んである値を結果として返すが、
 			// ここで取り出してしまうと呼び出し元に返す方法がないので、積んだままループを抜ける
-			// yield 引数に対応
 			// 呼び出し時点で関数の ip は yield の次を指している
 			// スタックの状態などを全て保存したまま実行を完了してしまう
-			return Ok;
+			return Yield;
 		}
 
 		case OP_CLASS:
@@ -836,21 +869,17 @@ ObjClosure* compileTo(Thread* thread, const char* source)
 	return closure;
 }
 
-void loadToThread(Thread* thread, ObjClosure* closure)
-{
-	// 確保済みのスタック 0 番に closure 自身を格納する
-	push(thread, TO_OBJ(closure));
-
-	// function の chunk をスレッドにロード
-	call(thread, closure, 0);
-}
-
 InterpretResult interpret(Thread* thread, const char* source)
 {
 	ObjClosure* closure = compileTo(thread, source);
 	if (closure == nullptr) return InterpretResult::CompileError;
 
-	loadToThread(thread, closure);
+	// 確保済みのスタック 0 番に closure 自身を格納する
+	push(thread, TO_OBJ(closure));
+
+	// function の chunk をスレッドにロード
+	call(thread, closure, 0);
+
 	auto result = run(thread); // ロードした chunk の実行ループを開始
 	pop(thread); // NOTE: 最後の実行結果は今のところ不要なので捨てる
 	return result;

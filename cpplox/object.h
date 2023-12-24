@@ -136,9 +136,18 @@ struct ObjBoundMethod
 
 ObjBoundMethod* newBoundMethod(Value receiver, ObjClosure* method);
 
+enum class ThreadState
+{
+	NotStarted,
+	Running,
+	End,
+};
+
 struct ObjThread
 {
 	Obj obj;
+	ThreadState state = ThreadState::NotStarted;
+	// TODO: スレッドサイズが大きいので生成コストが大きいのをなんとかする
 	Thread thread;
 };
 

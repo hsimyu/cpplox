@@ -1,4 +1,5 @@
-fun foo() {
+fun foo(v) {
+    print "v = " + tostring(v);
     print "This is sub thread";
     yield();
     print "aaa";
@@ -11,7 +12,7 @@ fun foo() {
 var thread = createThread(foo);
 var result = nil;
 print "-- run1 --";
-result = runThread(thread);
+result = runThread(thread, 1);
 print "result = " + tostring(result);
 
 print "-- run2 --";

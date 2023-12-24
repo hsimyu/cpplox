@@ -96,8 +96,14 @@ ObjBoundMethod* newBoundMethod(Value receiver, ObjClosure* method)
 ObjThread* newThread(ObjClosure* c)
 {
 	ObjThread* t = allocateObject<ObjThread>(ObjType::Thread);
+	t->state = ThreadState::NotStarted;
 	initThread(&t->thread);
-	loadToThread(&t->thread, c);
+
+	// 確保済みのスタック 0 番に closure 自身を格納しておく
+	push(&t->thread, TO_OBJ(c));
+
+	// ここではまだクロージャを call しない
+	// 実際の実行開始タイミングで引数を積んでからコールする
 	return t;
 }
 

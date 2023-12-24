@@ -65,7 +65,7 @@ def run(pattern=None, is_release=False):
 def main():
     parser = argparse.ArgumentParser(description='Lox test benchmark')
     parser.add_argument('--release', action='store_true', help='Release mode')
-    parser.add_argument('pattern', type=str, help='Pattern argument')
+    parser.add_argument('--pattern', type=str, help='Pattern argument', default="", required=False)
 
     args = parser.parse_args()
 
